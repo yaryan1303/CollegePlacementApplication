@@ -4,13 +4,12 @@ import java.security.Key;
 import java.util.Date;
 import java.util.stream.Collectors;
 
-import javax.crypto.SecretKey;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.college.PlacementApl.Service.Impl.UserDetailsImpl;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -18,6 +17,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @Component
 public class JwtUtils {
+
     @Value("${jwt.secret}")
     private String jwtSecret;
 
@@ -29,28 +29,44 @@ public class JwtUtils {
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);
         }
-
         return null;
     }
 
     public String generateToken(UserDetailsImpl userDetails) {
         String username = userDetails.getUsername();
-        String roles = userDetails.getAuthorities().stream().map(authority -> authority.getAuthority())
+        String roles = userDetails.getAuthorities().stream()
+                .map(authority -> authority.getAuthority())
                 .collect(Collectors.joining(","));
 
-        return Jwts.builder().subject(username).claim("roles", roles).issuedAt(new Date())
-                .expiration(new Date(new Date().getTime() + 172800000)).signWith(key()).compact();
+        Long userId = userDetails.getId();
+
+        return Jwts.builder()
+                .setSubject(username)
+                .claim("roles", roles)
+                .claim("userId", userId)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationsMs))
+                .signWith(key())
+                .compact();
     }
 
     public String getUsernameFromToken(String token) {
-        
-        return Jwts.parser()
-                .verifyWith((SecretKey) key())
+        return Jwts.parserBuilder()
+                .setSigningKey(key())
                 .build()
-                .parseSignedClaims(token)
-                .getPayload()
+                .parseClaimsJws(token)
+                .getBody()
                 .getSubject();
+    }
 
+    public Long extractUserIdFromToken(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        return claims.get("userId", Long.class);
     }
 
     private Key key() {
@@ -59,12 +75,14 @@ public class JwtUtils {
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parser().verifyWith((SecretKey) key()).build().parseSignedClaims(token);
+            Jwts.parserBuilder()
+                .setSigningKey(key())
+                .build()
+                .parseClaimsJws(token);
             return true;
         } catch (Exception e) {
+            // You may log the exception for debugging
             return false;
         }
-
     }
-
 }

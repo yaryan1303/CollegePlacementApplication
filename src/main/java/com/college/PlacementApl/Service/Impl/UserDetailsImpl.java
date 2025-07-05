@@ -52,4 +52,11 @@ public class UserDetailsImpl implements UserDetails {
     public String getUsername() {
         return username;
     }
+
+    public Long getId() {
+        return id;
+    
+    }
+
+
 }

@@ -51,24 +51,19 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
-            .authorizeHttpRequests(auth -> auth
-                // Auth endpoints (register/login) - publicly accessible
-                .requestMatchers("/api/auth/**").permitAll()
+                .authorizeHttpRequests(auth -> auth
 
-                // Public endpoints (e.g., company list for info)
-                .requestMatchers(HttpMethod.GET, "/api/companies/**").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
 
-                // Admin-only endpoints (use method-level @PreAuthorize or secured URLs)
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/companies/**").permitAll()
 
-                // User-specific endpoints
-                .requestMatchers("/api/users/**").hasRole("USER")
-                // .requestMatchers("/api/student/**").hasRole("USER")
-                // .requestMatchers("/api/applications/**").hasRole("USER")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                // Any other endpoint requires authentication
-                .anyRequest().authenticated()
-            );
+                        .requestMatchers("/api/users/**").hasRole("USER")
+                        // .requestMatchers("/api/student/**").hasRole("USER")
+                        // .requestMatchers("/api/applications/**").hasRole("USER")
+
+                        .anyRequest().authenticated());
 
         http.authenticationProvider(authenticationProvider());
         http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
