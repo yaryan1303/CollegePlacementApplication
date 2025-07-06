@@ -1,6 +1,6 @@
 package com.college.PlacementApl.dtos;
 
-import org.hibernate.annotations.processing.Pattern;
+
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

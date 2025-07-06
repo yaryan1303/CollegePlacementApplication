@@ -10,7 +10,9 @@ import com.college.PlacementApl.Model.PlacementRecord;
 import com.college.PlacementApl.Model.PlacementStatus;
 import com.college.PlacementApl.Repository.PlacementRecordRepository;
 import com.college.PlacementApl.Repository.StudentDetailsRepository;
+import com.college.PlacementApl.dtos.BatchStatsDto;
 import com.college.PlacementApl.dtos.PlacementRecordDto;
+import com.college.PlacementApl.dtos.PlacementStatsDto;
 
 @Service
 public class Placement_Service {
@@ -21,10 +23,9 @@ public class Placement_Service {
 
     private PlacementRecordRepository recordRepository;
 
-
-
     @Autowired
-    public Placement_Service(PlacementRecordRepository placementRepository, StudentDetailsRepository studentRepository, PlacementRecordRepository recordRepository) {
+    public Placement_Service(PlacementRecordRepository placementRepository, StudentDetailsRepository studentRepository,
+            PlacementRecordRepository recordRepository) {
         this.placementRepository = placementRepository;
         this.studentRepository = studentRepository;
         this.recordRepository = recordRepository;
@@ -39,20 +40,18 @@ public class Placement_Service {
 
     }
 
-    public PlacementStatsDto getPlacementStatistics() {
-        long totalStudents = studentRepository.count();
-        long placedStudents = studentRepository.countByCurrentStatus(PlacementStatus.PLACED);
-        
-        List<BatchStatsDto> batchStats = recordRepository.getBatchWisePlacementStats();
-        List<CompanyStatsDto> companyStats = recordRepository.getCompanyWisePlacementStats();
-        
-        return new PlacementStatsDto(
-            totalStudents,
-            placedStudents,
-            (totalStudents > 0) ? (double) placedStudents / totalStudents * 100 : 0,
-            batchStats,
-            companyStats
-        );
+
+    /////////////////////---------------------------------------------->>>>>>>>>>>>>>>>>>>>>>
+    /// Placement Summary
+    public PlacementStatsDto getPlacementSummary() {
+        Long totalStudents = studentRepository.count();
+        Long placedStudents = studentRepository.countByCurrentStatus(PlacementStatus.PLACED);
+
+        Double placementPercentage = totalStudents == 0 ? 0.0 : (placedStudents * 100.0) / totalStudents;
+
+        List<BatchStatsDto> batchStats = studentRepository.findBatchWisePlacementStats();
+
+        return new PlacementStatsDto(totalStudents, placedStudents, placementPercentage, batchStats);
     }
 
     private PlacementRecordDto convertToPlacementRecordDto(PlacementRecord record) {

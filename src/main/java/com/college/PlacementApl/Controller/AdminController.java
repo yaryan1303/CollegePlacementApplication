@@ -1,5 +1,6 @@
 package com.college.PlacementApl.Controller;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,18 +17,22 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.college.PlacementApl.Service.AdminVisitService;
+import com.college.PlacementApl.Service.Placement_Service;
 import com.college.PlacementApl.Service.UserService;
 import com.college.PlacementApl.Service.companyService;
 import com.college.PlacementApl.dtos.ApplicationDto;
 import com.college.PlacementApl.dtos.ApplicationResponseDto;
 import com.college.PlacementApl.dtos.CompanyCreateDto;
 import com.college.PlacementApl.dtos.CompanyDto;
+import com.college.PlacementApl.dtos.CompanyStatsDto;
 import com.college.PlacementApl.dtos.CompanyUpdateDto;
 import com.college.PlacementApl.dtos.CompanyVisitDto;
+import com.college.PlacementApl.dtos.PlacementStatsDto;
 import com.college.PlacementApl.dtos.StudentProfileDto;
 import com.college.PlacementApl.dtos.VisitCreateDto;
 import com.college.PlacementApl.dtos.VisitUpdateDto;
 import com.college.PlacementApl.utilites.ApplicationStatus;
+import com.college.PlacementApl.utilites.CompanyStatsExcelExporter;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -39,11 +44,15 @@ public class AdminController {
 
     private AdminVisitService visitService;
 
+    private Placement_Service placementService;
+
     @Autowired
-    public AdminController(UserService studentService, companyService companyService, AdminVisitService visitService) {
+    public AdminController(UserService studentService, companyService companyService, AdminVisitService visitService,
+            Placement_Service placementService) {
         this.studentService = studentService;
         this.companyService = companyService;
         this.visitService = visitService;
+        this.placementService = placementService;
     }
 
     //////////////// ----------------------------------------------------------------->>>>>>>>
@@ -140,14 +149,27 @@ public class AdminController {
         return ResponseEntity.ok(companyService.updateApplicationStatus(id, status, feedback));
     }
 
+    ////////////////////////// ----------------------------------------------->>>>>>>>>>>>>>>>>
+    /// Get Placment Summary
+    @GetMapping("/reports/placement-summary")
+    public ResponseEntity<PlacementStatsDto> getPlacementSummary() {
+        return ResponseEntity.ok(placementService.getPlacementSummary());
+    }
 
+    @GetMapping("/reports/company-stats")
+    public ResponseEntity<List<CompanyStatsDto>> getCompanyStats() {
+        return ResponseEntity.ok(companyService.getCompanyStatistics());
+    }
 
+    @GetMapping("/reports/company-stats/export")
+    public ResponseEntity<byte[]> exportCompanyStatsToExcel() throws IOException {
+        List<CompanyStatsDto> stats = companyService.getCompanyStatistics();
+        byte[] excelData = CompanyStatsExcelExporter.exportToExcel(stats);
 
-
-
-
-
-
-   
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=company-stats.xlsx")
+                .header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .body(excelData);
+    }
 
 }

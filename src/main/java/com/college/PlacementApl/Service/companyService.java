@@ -25,6 +25,7 @@ import com.college.PlacementApl.dtos.ApplicationResponseDto;
 import com.college.PlacementApl.dtos.CompanyBasicDto;
 import com.college.PlacementApl.dtos.CompanyCreateDto;
 import com.college.PlacementApl.dtos.CompanyDto;
+import com.college.PlacementApl.dtos.CompanyStatsDto;
 import com.college.PlacementApl.dtos.CompanyUpdateDto;
 import com.college.PlacementApl.dtos.CompanyVisitDto;
 import com.college.PlacementApl.dtos.CompanyVisitResponseDto;
@@ -46,7 +47,6 @@ public class companyService {
     private ModelMapper modelMapper;
 
     private PlacementRecordRepository placementRepository;
-
 
     @Autowired
     public companyService(CompanyRepository companyRepository, CompanyVisitRepository companyVisitRepository,
@@ -160,10 +160,7 @@ public class companyService {
                 .orElseThrow(() -> new ResourceNotFoundException("Company Visit not found with id: " + id));
     }
 
-
-
-
-    /////////////------------------------------------------------>>>>>>>>>>>>>>>>>>>>>.
+    ///////////// ------------------------------------------------>>>>>>>>>>>>>>>>>>>>>.
     /// Apply for company that visit company
     public ApplicationDto applyForCompany(Long userId, ApplicationRequestDto applicationRequest) {
         StudentDetails student = studentRepository.findByUserId(userId)
@@ -192,23 +189,20 @@ public class companyService {
     public List<ApplicationResponseDto> getAllApplcationsDetailsOfUser(Long userId) {
         StudentDetails student = studentRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
-        
-         Long studentId = student.getStudentId();
-        List<StudentApplication> applications = applicationRepository.findByStudent_StudentId(studentId);
 
+        Long studentId = student.getStudentId();
+        List<StudentApplication> applications = applicationRepository.findByStudent_StudentId(studentId);
 
         return applications.stream()
                 .map(this::ApplicationToApplicationResponseDTO)
                 .toList();
 
-        
-        
     }
+
     private ApplicationResponseDto ApplicationToApplicationResponseDTO(StudentApplication application) {
         CompanyVisit visit = application.getVisit();
         Company company = visit.getCompany();
         StudentDetails student = application.getStudent();
-
 
         ApplicationResponseDto dto = new ApplicationResponseDto();
         dto.setApplicationId(application.getApplicationId());
@@ -227,25 +221,21 @@ public class companyService {
         dto.setRollNumber(student.getRollNumber());
         dto.setDepartment(student.getDepartment());
 
-
         return dto;
 
     }
 
-
-
-    //////////////////-------------------------------------------------->>>>>>>>>>>>>>>>>>>>>
+    ////////////////// -------------------------------------------------->>>>>>>>>>>>>>>>>>>>>
     /// Application by status ADMIN SIDE
     public List<ApplicationResponseDto> getAllApplications(ApplicationStatus status) {
-      List<StudentApplication> applications = applicationRepository.findByStatus(status);
-
+        List<StudentApplication> applications = applicationRepository.findByStatus(status);
 
         return applications.stream()
                 .map(this::ApplicationToApplicationResponseDTO)
                 .toList();
     }
 
-    //////////////////-------------------------------------------------->>>>>>>>>>>>>>>>>>>>>
+    ////////////////// -------------------------------------------------->>>>>>>>>>>>>>>>>>>>>
     /// Application by Company Name ADMIN SIDE
     public List<ApplicationResponseDto> getApplicationsByCompanyName(String companyName) {
         List<StudentApplication> applications = applicationRepository.findByCompanyNameContaining(companyName);
@@ -256,51 +246,55 @@ public class companyService {
 
     }
 
+    // Update Application Status and also save placed Student in placement Table
 
-    //Update Application Status and also save placed Student in placement Table
+    public String updateApplicationStatus(Long id, ApplicationStatus status, String feedback) {
+        StudentApplication application = applicationRepository.findByIdWithDetails(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
 
-   public String updateApplicationStatus(Long id, ApplicationStatus status, String feedback) {
-    StudentApplication application = applicationRepository.findByIdWithDetails(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
+        application.setStatus(status);
+        application.setFeedback(feedback);
 
-    application.setStatus(status);
-    application.setFeedback(feedback);
-    
-    application = applicationRepository.save(application);
+        application = applicationRepository.save(application);
 
-    if (status == ApplicationStatus.SELECTED) {
-        createPlacementRecord(application);
+        if (status == ApplicationStatus.SELECTED) {
+            createPlacementRecord(application);
+        }
+
+        return "Application status updated successfully";
+
     }
 
-   return "Application status updated successfully";
+    private void createPlacementRecord(StudentApplication application) {
 
-}
+        boolean placementExists = placementRepository.existsByStudentAndCompany(
+                application.getStudent(),
+                application.getVisit().getCompany());
 
-private void createPlacementRecord(StudentApplication application) {
+        if (placementExists) {
+            throw new BusinessException("Placement record already exists for this student and company");
+        }
 
-    boolean placementExists = placementRepository.existsByStudentAndCompany(
-            application.getStudent(), 
-            application.getVisit().getCompany()
-    );
+        PlacementRecord record = new PlacementRecord();
+        record.setStudent(application.getStudent());
+        record.setCompany(application.getVisit().getCompany());
+        record.setVisit(application.getVisit());
+        record.setPosition(application.getVisit().getJobPositions());
+        record.setSalaryPackage(application.getVisit().getSalaryPackage());
+        record.setPlacementDate(LocalDate.now());
 
-    if (placementExists) {
-        throw new BusinessException("Placement record already exists for this student and company");
+        placementRepository.save(record);
+
+        // Update student status
+        StudentDetails student = application.getStudent();
+        student.setCurrentStatus(PlacementStatus.PLACED);
+        studentRepository.save(student);
     }
 
-    PlacementRecord record = new PlacementRecord();
-    record.setStudent(application.getStudent());
-    record.setCompany(application.getVisit().getCompany());
-    record.setVisit(application.getVisit());
-    record.setPosition(application.getVisit().getJobPositions());
-    record.setSalaryPackage(application.getVisit().getSalaryPackage());
-    record.setPlacementDate(LocalDate.now());
-
-    placementRepository.save(record);
-
-    // Update student status
-    StudentDetails student = application.getStudent();
-    student.setCurrentStatus(PlacementStatus.PLACED);
-    studentRepository.save(student);
-}
+    /////////// ---------------------------------------->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    /// Company Reports
+    public List<CompanyStatsDto> getCompanyStatistics() {
+        return companyRepository.getCompanyStats();
+    }
 
 }
