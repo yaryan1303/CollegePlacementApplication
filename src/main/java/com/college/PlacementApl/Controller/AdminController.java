@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.college.PlacementApl.Service.AdminVisitService;
 import com.college.PlacementApl.Service.UserService;
 import com.college.PlacementApl.Service.companyService;
+import com.college.PlacementApl.dtos.ApplicationDto;
+import com.college.PlacementApl.dtos.ApplicationResponseDto;
 import com.college.PlacementApl.dtos.CompanyCreateDto;
 import com.college.PlacementApl.dtos.CompanyDto;
 import com.college.PlacementApl.dtos.CompanyUpdateDto;
@@ -25,25 +27,26 @@ import com.college.PlacementApl.dtos.CompanyVisitDto;
 import com.college.PlacementApl.dtos.StudentProfileDto;
 import com.college.PlacementApl.dtos.VisitCreateDto;
 import com.college.PlacementApl.dtos.VisitUpdateDto;
+import com.college.PlacementApl.utilites.ApplicationStatus;
 
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
 
-   private UserService studentService;
+    private UserService studentService;
 
-   private companyService companyService;
+    private companyService companyService;
 
-   private  AdminVisitService visitService;
+    private AdminVisitService visitService;
 
-   @Autowired
+    @Autowired
     public AdminController(UserService studentService, companyService companyService, AdminVisitService visitService) {
         this.studentService = studentService;
         this.companyService = companyService;
         this.visitService = visitService;
     }
 
-    ////////////////----------------------------------------------------------------->>>>>>>>
+    //////////////// ----------------------------------------------------------------->>>>>>>>
     /// Student Details
 
     // Fetch All the Students
@@ -57,12 +60,10 @@ public class AdminController {
         return ResponseEntity.ok(studentService.getStudentById(id));
     }
 
-
-
-    ////////////////////////////////--------------------------------------->>>>>>>>>>>>>>>>>>>>>>>
+    //////////////////////////////// --------------------------------------->>>>>>>>>>>>>>>>>>>>>>>
     /// Company Controller
-    /// 
-    
+    ///
+
     @PostMapping("/companies")
     public ResponseEntity<CompanyDto> createCompany(@RequestBody CompanyCreateDto createDto) {
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -79,8 +80,6 @@ public class AdminController {
         return ResponseEntity.ok(companyService.getCompanyById(id));
     }
 
-   
-
     @PutMapping("/companies/{id}")
     public ResponseEntity<CompanyDto> updateCompany(
             @PathVariable Long id,
@@ -94,14 +93,8 @@ public class AdminController {
         return "Company deleted successfully";
     }
 
-
-
-
-
-    ///////////----------------------------------------------------------->>>>>>>>>
+    /////////// ----------------------------------------------------------->>>>>>>>>
     /// Company Visit
-    
-    
 
     @PostMapping("/visits")
     public ResponseEntity<CompanyVisitDto> scheduleVisit(@RequestBody VisitCreateDto createDto) {
@@ -123,9 +116,38 @@ public class AdminController {
         return ResponseEntity.ok(visitService.updateVisitStatus(id, isActive));
     }
 
+    /////////////////// --------------------------------------------------------->>>>>>>>>>>>
+    /// StudentApplication Fetures...........
+    ///
+    @GetMapping("/applications")
+    public ResponseEntity<List<ApplicationResponseDto>> getAllApplications(
+            @RequestParam(required = false) ApplicationStatus status) {
+        return ResponseEntity.ok(companyService.getAllApplications(status));
 
-    ///////////////////--------------------------------------------------------->>>>>>>>>>>>
-    /// 
-    
+    }
+
+    @GetMapping("applications/by-company")
+    public ResponseEntity<List<ApplicationResponseDto>> getApplicationsByCompany(
+            @RequestParam String companyName) {
+        return ResponseEntity.ok(companyService.getApplicationsByCompanyName(companyName));
+    }
+
+    @PutMapping("applications/{id}")
+    public ResponseEntity<String> updateApplicationStatus(
+            @PathVariable Long id,
+            @RequestParam ApplicationStatus status,
+            @RequestParam(required = false) String feedback) {
+        return ResponseEntity.ok(companyService.updateApplicationStatus(id, status, feedback));
+    }
+
+
+
+
+
+
+
+
+
+   
 
 }
