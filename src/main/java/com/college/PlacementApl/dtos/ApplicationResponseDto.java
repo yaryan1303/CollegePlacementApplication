@@ -26,4 +26,5 @@ public class ApplicationResponseDto {
    private String lastName;
     private String rollNumber;
     private String department;
+
 }

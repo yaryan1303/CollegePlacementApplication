@@ -173,6 +173,25 @@ public class companyService {
             throw new BusinessException("Cannot apply for an inactive company visit");
         }
 
+        System.out.println(visit.getEligibilityCriteria());
+
+        Double visitcgpa=Double.parseDouble(visit.getEligibilityCriteria());
+        Double studentcgpa=student.getCgpa();
+
+        if(studentcgpa<visitcgpa)
+        {
+            throw new BusinessException("You are not Eligible for this Application because your cgpa is less");
+        }
+
+        if(!visit.getBatchYear().equals(student.getBatchYear()))
+        {
+            System.out.println(visit.getBatchYear());
+            System.out.println(student.getBatchYear());
+            throw new BusinessException("You are not Eligible for this Application because your batch does not match");
+        }
+
+
+
         if (applicationRepository.existsByStudentAndVisit(student, visit)) {
             throw new BusinessException("You have already applied for this company visit");
         }
