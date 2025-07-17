@@ -17,10 +17,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.college.PlacementApl.Service.AdminVisitService;
+import com.college.PlacementApl.Service.ApplicationService;
 import com.college.PlacementApl.Service.Placement_Service;
 import com.college.PlacementApl.Service.UserService;
 import com.college.PlacementApl.Service.companyService;
-import com.college.PlacementApl.dtos.ApplicationDto;
 import com.college.PlacementApl.dtos.ApplicationResponseDto;
 import com.college.PlacementApl.dtos.CompanyCreateDto;
 import com.college.PlacementApl.dtos.CompanyDto;
@@ -46,13 +46,17 @@ public class AdminController {
 
     private Placement_Service placementService;
 
+    private ApplicationService applicationService;
+
+
     @Autowired
     public AdminController(UserService studentService, companyService companyService, AdminVisitService visitService,
-            Placement_Service placementService) {
+            Placement_Service placementService, ApplicationService applicationService) {
         this.studentService = studentService;
         this.companyService = companyService;
         this.visitService = visitService;
         this.placementService = placementService;
+        this.applicationService = applicationService;
     }
 
     //////////////// ----------------------------------------------------------------->>>>>>>>
@@ -131,14 +135,14 @@ public class AdminController {
     @GetMapping("/applications")
     public ResponseEntity<List<ApplicationResponseDto>> getAllApplications(
             @RequestParam(required = false) ApplicationStatus status) {
-        return ResponseEntity.ok(companyService.getAllApplications(status));
+        return ResponseEntity.ok(applicationService.getAllApplications(status));
 
     }
 
     @GetMapping("applications/by-company")
     public ResponseEntity<List<ApplicationResponseDto>> getApplicationsByCompany(
             @RequestParam String companyName) {
-        return ResponseEntity.ok(companyService.getApplicationsByCompanyName(companyName));
+        return ResponseEntity.ok(applicationService.getApplicationsByCompanyName(companyName));
     }
 
     @PutMapping("applications/{id}")
@@ -146,7 +150,7 @@ public class AdminController {
             @PathVariable Long id,
             @RequestParam ApplicationStatus status,
             @RequestParam(required = false) String feedback) {
-        return ResponseEntity.ok(companyService.updateApplicationStatus(id, status, feedback));
+        return ResponseEntity.ok(applicationService.updateApplicationStatus(id, status, feedback));
     }
 
     ////////////////////////// ----------------------------------------------->>>>>>>>>>>>>>>>>
@@ -158,12 +162,12 @@ public class AdminController {
 
     @GetMapping("/reports/company-stats")
     public ResponseEntity<List<CompanyStatsDto>> getCompanyStats() {
-        return ResponseEntity.ok(companyService.getCompanyStatistics());
+        return ResponseEntity.ok(applicationService.getCompanyStatistics());
     }
 
     @GetMapping("/reports/company-stats/export")
     public ResponseEntity<byte[]> exportCompanyStatsToExcel() throws IOException {
-        List<CompanyStatsDto> stats = companyService.getCompanyStatistics();
+        List<CompanyStatsDto> stats = applicationService.getCompanyStatistics();
         byte[] excelData = CompanyStatsExcelExporter.exportToExcel(stats);
 
         return ResponseEntity.ok()

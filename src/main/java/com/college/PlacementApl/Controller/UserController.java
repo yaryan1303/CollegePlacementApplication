@@ -12,12 +12,11 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.college.PlacementApl.Model.CompanyVisit;
 import com.college.PlacementApl.Model.StudentDetails;
 import com.college.PlacementApl.Security.JwtUtils;
+import com.college.PlacementApl.Service.ApplicationService;
 import com.college.PlacementApl.Service.Placement_Service;
 import com.college.PlacementApl.Service.UserService;
 import com.college.PlacementApl.Service.companyService;
@@ -25,7 +24,6 @@ import com.college.PlacementApl.dtos.ApplicationRequestDto;
 import com.college.PlacementApl.dtos.ApplicationResponseDto;
 import com.college.PlacementApl.dtos.ApplicationDto;
 import com.college.PlacementApl.dtos.CompanyDto;
-import com.college.PlacementApl.dtos.CompanyVisitDto;
 import com.college.PlacementApl.dtos.CompanyVisitResponseDto;
 import com.college.PlacementApl.dtos.PlacementRecordDto;
 import com.college.PlacementApl.dtos.StudentDetailsDto;
@@ -37,22 +35,22 @@ import jakarta.servlet.http.HttpServletRequest;
 public class UserController {
 
     private UserService userService;
-    private StudentDetails studentDetails;
-
     private companyService companyService;
 
     private Placement_Service placementService;
 
+    private ApplicationService applicationService;
 
-
-    @Autowired
+   
     private JwtUtils jwtUtils;
 
     @Autowired
-    public UserController(UserService userService, companyService companyService, Placement_Service placementService) {
+    public UserController(UserService userService, companyService companyService, Placement_Service placementService, ApplicationService applicationService,JwtUtils jwtUtils) {
         this.userService = userService;
         this.companyService = companyService;
         this.placementService = placementService;
+        this.applicationService = applicationService;
+        this.jwtUtils = jwtUtils;
     }
 
     // Save Student Details
@@ -130,7 +128,7 @@ public class UserController {
     public ResponseEntity<ApplicationDto> applyForCompany(HttpServletRequest request,@RequestBody ApplicationRequestDto applicationRequest) {
         Long userId = userService.getUserIdFromRequest(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(companyService.applyForCompany(userId, applicationRequest));
+                .body(applicationService.applyForCompany(userId, applicationRequest));
 
     }
 
@@ -141,7 +139,7 @@ public class UserController {
     {
         Long userId=userService.getUserIdFromRequest(request);
 
-        List<ApplicationResponseDto> allApplcationsDetails = companyService.getAllApplcationsDetailsOfUser(userId);
+        List<ApplicationResponseDto> allApplcationsDetails = applicationService.getAllApplcationsDetailsOfUser(userId);
 
         return allApplcationsDetails;
     }

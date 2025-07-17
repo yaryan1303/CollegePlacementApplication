@@ -53,10 +53,9 @@ public class SecurityConfig {
 public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
         .authorizeHttpRequests(auth -> auth
-            // Public endpoints
+           
             .requestMatchers(
                 "/api/auth/**",
-                // Swagger/OpenAPI endpoints
                 "/swagger-ui.html",
                 "/swagger-ui/**",
                 "/v3/api-docs/**",
@@ -65,14 +64,14 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
                 "/webjars/**"
             ).permitAll()
             
-            // Read-only public access
+           
             .requestMatchers(HttpMethod.GET, "/api/companies/**").permitAll()
             
-            // Role-based access
+            
             .requestMatchers("/api/admin/**").hasRole("ADMIN")
             .requestMatchers("/api/users/**").hasRole("USER")
             
-            // All other requests require authentication
+           
             .anyRequest().authenticated()
         )
         .authenticationProvider(authenticationProvider())

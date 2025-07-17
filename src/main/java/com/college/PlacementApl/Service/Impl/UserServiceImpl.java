@@ -125,7 +125,7 @@ public class UserServiceImpl implements UserService {
         if (token != null && jwtUtils.validateToken(token)) {
             return jwtUtils.extractUserIdFromToken(token);
         }
-        return null; // Or throw custom exception if needed
+        return null;
     }
 
     // Update studentDetails using studentId

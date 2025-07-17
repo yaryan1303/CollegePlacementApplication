@@ -21,14 +21,16 @@ public class Placement_Service {
 
     private StudentDetailsRepository studentRepository;
 
-    private PlacementRecordRepository recordRepository;
+    
+
+
 
     @Autowired
-    public Placement_Service(PlacementRecordRepository placementRepository, StudentDetailsRepository studentRepository,
-            PlacementRecordRepository recordRepository) {
+    public Placement_Service(PlacementRecordRepository placementRepository, StudentDetailsRepository studentRepository) {
         this.placementRepository = placementRepository;
         this.studentRepository = studentRepository;
-        this.recordRepository = recordRepository;
+       
+        
     }
 
     public List<PlacementRecordDto> getPlacementRecords(Integer batchYear, String companyName) {
@@ -68,4 +70,6 @@ public class Placement_Service {
         dto.setInternship(record.isInternship());
         return dto;
     }
+
+   
 }

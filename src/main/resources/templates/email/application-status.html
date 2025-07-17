@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Application Status Update</title>
+</head>
+<body>
+    <p>Dear <strong th:text="${studentName}">Student</strong>,</p>
+
+    <p>
+        We are writing to inform you that your application for the position of
+        <strong th:text="${jobTitle}">Software Engineer</strong> at
+        <strong th:text="${companyName}">ABC Corp</strong> has been
+        <strong th:text="${status}">APPROVED</strong>.
+    </p>
+
+    <p th:if="${feedback != null}">
+        Feedback from the recruiter: <em th:text="${feedback}">Your resume was impressive!</em>
+    </p>
+
+    <p>Thank you for using our placement portal.</p>
+
+    <p>Best regards,<br>Placement Cell Team</p>
+</body>
+</html>
