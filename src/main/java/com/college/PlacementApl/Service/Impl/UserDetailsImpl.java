@@ -1,7 +1,6 @@
 package com.college.PlacementApl.Service.Impl;
 
 import java.util.*;
-import java.util.Collection;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -28,11 +27,18 @@ public class UserDetailsImpl implements UserDetails {
     }
 
     public static UserDetailsImpl build(User user) {
-        GrantedAuthority authority = new SimpleGrantedAuthority(user.getRole());
-        List<GrantedAuthority> authorities = Arrays.asList(authority);
-        return new UserDetailsImpl(user.getId(), user.getUsername(), user.getEmail(),
-                user.getPassword(), authorities);
-    }
+    GrantedAuthority authority = new SimpleGrantedAuthority(user.getRole().getName());
+    List<GrantedAuthority> authorities = List.of(authority);
+
+    return new UserDetailsImpl(
+        user.getId(),
+        user.getUsername(),
+        user.getEmail(),
+        user.getPassword(),
+        authorities
+    );
+}
+
 
     public String getEmail() {
         return email;

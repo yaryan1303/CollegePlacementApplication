@@ -143,7 +143,7 @@ public class ApplicationService {
         dto.setFirstName(student.getFirstName());
         dto.setLastName(student.getLastName());
         dto.setRollNumber(student.getRollNumber());
-        dto.setDepartment(student.getDepartment());
+        dto.setDepartment(student.getDepartment().getName());
 
         return dto;
 

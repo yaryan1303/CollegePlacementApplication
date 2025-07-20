@@ -61,11 +61,13 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
                 "/v3/api-docs/**",
                 "/v3/api-docs.yaml",
                 "/swagger-resources/**",
-                "/webjars/**"
+                "/webjars/**",
+                "/actuator/**"
             ).permitAll()
             
            
-            .requestMatchers(HttpMethod.GET, "/api/companies/**").permitAll()
+            .requestMatchers(HttpMethod.GET, "/api/admin/companies/**").permitAll()
+            .requestMatchers(HttpMethod.GET, "/api/users/placementsRecords").permitAll()
             
             
             .requestMatchers("/api/admin/**").hasRole("ADMIN")

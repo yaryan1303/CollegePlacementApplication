@@ -37,6 +37,8 @@ public class CompanyVisit {
     private Company company;
     
     private LocalDate visitDate;
+
+    @Column(name="application_end_data")
     private LocalDate applicationDeadline;
     
     @Column(columnDefinition = "TEXT")

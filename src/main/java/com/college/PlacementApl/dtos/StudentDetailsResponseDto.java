@@ -1,16 +1,9 @@
 package com.college.PlacementApl.dtos;
 
-import com.college.PlacementApl.Model.Department;
-import com.college.PlacementApl.Model.PlacementStatus;
-
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class StudentProfileDto {
+public class StudentDetailsResponseDto {
     private Long studentId;
     private String firstName;
     private String lastName;
@@ -20,6 +13,6 @@ public class StudentProfileDto {
     private Double cgpa;
     private String resumeUrl;
     private String phoneNumber;
-    private PlacementStatus currentStatus;
+    private String currentStatus;
 
 }

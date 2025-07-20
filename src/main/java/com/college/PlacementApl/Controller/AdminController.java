@@ -16,8 +16,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.college.PlacementApl.Model.Department;
 import com.college.PlacementApl.Service.AdminVisitService;
 import com.college.PlacementApl.Service.ApplicationService;
+import com.college.PlacementApl.Service.DepartmentService;
 import com.college.PlacementApl.Service.Placement_Service;
 import com.college.PlacementApl.Service.UserService;
 import com.college.PlacementApl.Service.companyService;
@@ -34,6 +36,8 @@ import com.college.PlacementApl.dtos.VisitUpdateDto;
 import com.college.PlacementApl.utilites.ApplicationStatus;
 import com.college.PlacementApl.utilites.CompanyStatsExcelExporter;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
@@ -48,16 +52,37 @@ public class AdminController {
 
     private ApplicationService applicationService;
 
+    private DepartmentService departmentService;
+
+
 
     @Autowired
     public AdminController(UserService studentService, companyService companyService, AdminVisitService visitService,
-            Placement_Service placementService, ApplicationService applicationService) {
+            Placement_Service placementService, ApplicationService applicationService, DepartmentService departmentService) {
         this.studentService = studentService;
         this.companyService = companyService;
         this.visitService = visitService;
         this.placementService = placementService;
         this.applicationService = applicationService;
+        this.departmentService = departmentService;
     }
+
+    // Category Controller 
+    @PostMapping("/departments")
+    public ResponseEntity<Department> createDepartment(@Valid @RequestBody Department department) {
+        Department createdDepartment = departmentService.createDepartment(department);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdDepartment);
+        }
+
+
+    @PutMapping("/departments/{id}")
+    public ResponseEntity<Department> updateDepartment(@PathVariable Long id,@Valid @RequestBody Department department) {
+        Department updatedDepartment = departmentService.updateDepartment(id, department);
+        return ResponseEntity.ok(updatedDepartment);
+    }
+
+
+    
 
     //////////////// ----------------------------------------------------------------->>>>>>>>
     /// Student Details
@@ -78,7 +103,7 @@ public class AdminController {
     ///
 
     @PostMapping("/companies")
-    public ResponseEntity<CompanyDto> createCompany(@RequestBody CompanyCreateDto createDto) {
+    public ResponseEntity<CompanyDto> createCompany(@Valid @RequestBody CompanyCreateDto createDto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(companyService.createCompany(createDto));
     }
@@ -96,7 +121,7 @@ public class AdminController {
     @PutMapping("/companies/{id}")
     public ResponseEntity<CompanyDto> updateCompany(
             @PathVariable Long id,
-            @RequestBody CompanyUpdateDto updateDto) {
+            @Valid @RequestBody CompanyUpdateDto updateDto) {
         return ResponseEntity.ok(companyService.updateCompany(id, updateDto));
     }
 
@@ -110,7 +135,7 @@ public class AdminController {
     /// Company Visit
 
     @PostMapping("/visits")
-    public ResponseEntity<CompanyVisitDto> scheduleVisit(@RequestBody VisitCreateDto createDto) {
+    public ResponseEntity<CompanyVisitDto> scheduleVisit(@Valid @RequestBody VisitCreateDto createDto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(visitService.scheduleVisit(createDto));
     }
@@ -118,7 +143,7 @@ public class AdminController {
     @PutMapping("/visits/{id}")
     public ResponseEntity<CompanyVisitDto> updateVisit(
             @PathVariable Long id,
-            @RequestBody VisitUpdateDto updateDto) {
+           @Valid @RequestBody VisitUpdateDto updateDto) {
         return ResponseEntity.ok(visitService.updateVisit(id, updateDto));
     }
 

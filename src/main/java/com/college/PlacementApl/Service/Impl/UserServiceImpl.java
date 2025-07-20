@@ -15,8 +15,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.college.PlacementApl.Model.Department;
 import com.college.PlacementApl.Model.StudentDetails;
 import com.college.PlacementApl.Model.User;
+import com.college.PlacementApl.Repository.DepartmentRepository;
 import com.college.PlacementApl.Repository.StudentDetailsRepository;
 import com.college.PlacementApl.Repository.UserRepository;
 import com.college.PlacementApl.Security.JwtAuthenticationResponse;
@@ -25,6 +27,7 @@ import com.college.PlacementApl.Service.UserService;
 import com.college.PlacementApl.dtos.CompanyVisitDto;
 import com.college.PlacementApl.dtos.LoginRequest;
 import com.college.PlacementApl.dtos.StudentDetailsDto;
+import com.college.PlacementApl.dtos.StudentDetailsResponseDto;
 import com.college.PlacementApl.dtos.StudentProfileDto;
 import com.college.PlacementApl.utilites.ResourceNotFoundException;
 
@@ -43,19 +46,22 @@ public class UserServiceImpl implements UserService {
 
     private StudentDetailsRepository studentDetailsRepository;
 
-    
-    private  ModelMapper modelMapper;
+    private ModelMapper modelMapper;
+
+    private DepartmentRepository departmentRepository;
 
     @Autowired
     public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder,
             AuthenticationManager authenticationManager, JwtUtils jwtUtils,
-            StudentDetailsRepository studentDetailsRepository, ModelMapper modelMapper) {
+            StudentDetailsRepository studentDetailsRepository, ModelMapper modelMapper,
+            DepartmentRepository departmentRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtUtils = jwtUtils;
         this.studentDetailsRepository = studentDetailsRepository;
         this.modelMapper = modelMapper;
+        this.departmentRepository = departmentRepository;
     }
 
     public User registerUser(User user) {
@@ -84,37 +90,54 @@ public class UserServiceImpl implements UserService {
     // Saving the Student
     // Information-------------------------------------------------------->>>>>>>
 
+   @Override
+public StudentDetailsResponseDto saveStudent(StudentDetailsDto studentDetailsDto) {
+    User user = userRepository.findById(studentDetailsDto.getUserId())
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + studentDetailsDto.getUserId()));
+
+    Department department = departmentRepository.findById(studentDetailsDto.getDepartmentId())
+            .orElseThrow(() -> new ResourceNotFoundException("Department not found with ID: " + studentDetailsDto.getDepartmentId()));
+
+    StudentDetails studentDetails = new StudentDetails();
+    studentDetails.setUser(user);
+    studentDetails.setDepartment(department);
+    studentDetails.setFirstName(studentDetailsDto.getFirstName());
+    studentDetails.setLastName(studentDetailsDto.getLastName());
+    studentDetails.setRollNumber(studentDetailsDto.getRollNumber());
+    studentDetails.setBatchYear(studentDetailsDto.getBatchYear());
+    studentDetails.setCgpa(studentDetailsDto.getCgpa());
+    studentDetails.setResumeUrl(studentDetailsDto.getResumeUrl());
+    studentDetails.setPhoneNumber(studentDetailsDto.getPhoneNumber());
+    studentDetails.setCurrentStatus(studentDetailsDto.getCurrentStatus());
+
+    // Establish bi-directional mapping if required
+    user.setStudentDetails(studentDetails);
+
+    studentDetailsRepository.save(studentDetails);
+
+    return convertToStudentDetailsResponseDto(studentDetails);
+}
+
+public StudentDetailsResponseDto convertToStudentDetailsResponseDto(StudentDetails studentDetails) {
+    StudentDetailsResponseDto responseDto = new StudentDetailsResponseDto();
+    responseDto.setStudentId(studentDetails.getStudentId());
+    responseDto.setFirstName(studentDetails.getFirstName());
+    responseDto.setLastName(studentDetails.getLastName());
+    responseDto.setRollNumber(studentDetails.getRollNumber());
+    responseDto.setBatchYear(studentDetails.getBatchYear());
+    responseDto.setDepartment(studentDetails.getDepartment().getName());
+    responseDto.setCgpa(studentDetails.getCgpa());
+    responseDto.setResumeUrl(studentDetails.getResumeUrl());
+    responseDto.setPhoneNumber(studentDetails.getPhoneNumber());
+    responseDto.setCurrentStatus(studentDetails.getCurrentStatus().toString());
+    return responseDto;
+}
+
+
     @Override
-    public StudentDetails saveStudent(StudentDetailsDto studentDetailsDto) {
-        Optional<User> user = userRepository.findById(studentDetailsDto.getUserId());
-        if (user.isPresent()) {
-
-            StudentDetails studentDetails = new StudentDetails();
-
-            studentDetails.setUser(user.get());
-            studentDetails.setFirstName(studentDetailsDto.getFirstName());
-            studentDetails.setLastName(studentDetailsDto.getLastName());
-            studentDetails.setRollNumber(studentDetailsDto.getRollNumber());
-            studentDetails.setBatchYear(studentDetailsDto.getBatchYear());
-            studentDetails.setDepartment(studentDetailsDto.getDepartment());
-            studentDetails.setCgpa(studentDetailsDto.getCgpa());
-            studentDetails.setResumeUrl(studentDetailsDto.getResumeUrl());
-            studentDetails.setPhoneNumber(studentDetailsDto.getPhoneNumber());
-            studentDetails.setCurrentStatus(studentDetailsDto.getCurrentStatus());
-
-            // Save the student details
-            user.get().setStudentDetails(studentDetails);
-
-            return studentDetailsRepository.save(studentDetails);
-        }
-        return null;
-
-    }
-
-    @Override
-    public StudentDetails getStudentDetails(Long userId) {
+    public StudentDetailsResponseDto getStudentDetails(Long userId) {
         StudentDetails StudentbyUserId = studentDetailsRepository.findByUserId(userId).orElseThrow();
-        return StudentbyUserId;
+        return convertToStudentDetailsResponseDto(StudentbyUserId);
 
     }
 
@@ -130,17 +153,21 @@ public class UserServiceImpl implements UserService {
 
     // Update studentDetails using studentId
     @Override
-    public StudentDetails updateStudentDetails(Long studentId, Long userId, StudentDetailsDto studentDetailsDto) {
+    public StudentDetailsResponseDto updateStudentDetails(Long studentId, Long userId, StudentDetailsDto studentDetailsDto) {
         StudentDetails student = studentDetailsRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 
         if (!student.getUser().getId().equals(userId)) {
             throw new RuntimeException("Unauthorized access to student record");
         }
+        Department department = departmentRepository.findById(studentDetailsDto.getDepartmentId())
+                .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
+
+        student.setDepartment(department);
 
         // Update student fields from DTO here
         student.setCgpa(studentDetailsDto.getCgpa());
-        student.setDepartment(studentDetailsDto.getDepartment());
+
         student.setFirstName(studentDetailsDto.getFirstName());
         student.setLastName(studentDetailsDto.getLastName());
         student.setPhoneNumber(studentDetailsDto.getPhoneNumber());
@@ -148,7 +175,9 @@ public class UserServiceImpl implements UserService {
         student.setRollNumber(studentDetailsDto.getRollNumber());
         student.setCurrentStatus(studentDetailsDto.getCurrentStatus());
 
-        return studentDetailsRepository.save(student);
+        studentDetailsRepository.save(student);
+
+        return convertToStudentDetailsResponseDto(student);
     }
 
     // Fetch All the Students
@@ -161,12 +190,10 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-     public StudentProfileDto getStudentById(Long id) {
+    public StudentProfileDto getStudentById(Long id) {
         StudentDetails student = studentDetailsRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
         return modelMapper.map(student, StudentProfileDto.class);
     }
-
-   
 
 }

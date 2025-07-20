@@ -14,7 +14,7 @@ public class CompanyVisitDto {
     private Long companyId;
     private String companyName;
     private LocalDate visitDate;
-    private LocalDate applicationDeadline;
+    private LocalDate application_end_data;
     private String jobPositions;
     private String salaryPackage;
     private String eligibilityCriteria;

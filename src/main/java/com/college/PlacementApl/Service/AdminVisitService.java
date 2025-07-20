@@ -33,7 +33,7 @@ public class AdminVisitService {
         CompanyVisit visit = new CompanyVisit();
         visit.setCompany(company);
         visit.setVisitDate(createDto.getVisitDate());
-        visit.setApplicationDeadline(createDto.getApplicationDeadline());
+        visit.setApplicationDeadline(createDto.getApplication_end_date());
         visit.setJobPositions(createDto.getJobPositions());
         visit.setSalaryPackage(createDto.getSalaryPackage());
         visit.setEligibilityCriteria(createDto.getEligibilityCriteria());
@@ -49,7 +49,7 @@ public class AdminVisitService {
                 .orElseThrow(() -> new ResourceNotFoundException("Visit not found"));
 
         visit.setVisitDate(updateDto.getVisitDate());
-        visit.setApplicationDeadline(updateDto.getApplicationDeadline());
+        visit.setApplicationDeadline(updateDto.getApplication_end_date());
         visit.setJobPositions(updateDto.getJobPositions());
         visit.setSalaryPackage(updateDto.getSalaryPackage());
         visit.setEligibilityCriteria(updateDto.getEligibilityCriteria());
@@ -73,7 +73,7 @@ public class AdminVisitService {
         dto.setCompanyId(visit.getCompany().getCompanyId());
         dto.setCompanyName(visit.getCompany().getName());
         dto.setVisitDate(visit.getVisitDate());
-        dto.setApplicationDeadline(visit.getApplicationDeadline());
+        dto.setApplication_end_data(visit.getApplicationDeadline());
         dto.setJobPositions(visit.getJobPositions());
         dto.setSalaryPackage(visit.getSalaryPackage());
         dto.setEligibilityCriteria(visit.getEligibilityCriteria());

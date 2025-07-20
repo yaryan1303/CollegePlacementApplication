@@ -14,6 +14,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -26,7 +28,6 @@ import lombok.ToString;
 @Table(name = "users")
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString
 @Setter
 @Getter
 public class User {
@@ -43,10 +44,10 @@ public class User {
     @Column(unique = true, nullable = false)
     private String email;
     
-    
-    private String role="ROLE_USER";
-    
-    private boolean enabled = true;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id")
+    private Role role;
+
     
     @CreationTimestamp
     private LocalDateTime createdAt;

@@ -10,6 +10,7 @@ import com.college.PlacementApl.Security.JwtAuthenticationResponse;
 import com.college.PlacementApl.dtos.CompanyVisitDto;
 import com.college.PlacementApl.dtos.LoginRequest;
 import com.college.PlacementApl.dtos.StudentDetailsDto;
+import com.college.PlacementApl.dtos.StudentDetailsResponseDto;
 import com.college.PlacementApl.dtos.StudentProfileDto;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,13 +21,13 @@ public interface UserService {
 
     public JwtAuthenticationResponse loginUser(LoginRequest loginRequest);
 
-    public StudentDetails saveStudent(StudentDetailsDto studentDetailsDto);
+    public StudentDetailsResponseDto saveStudent(StudentDetailsDto studentDetailsDto);
 
-    public StudentDetails getStudentDetails(Long userId);
+    public StudentDetailsResponseDto getStudentDetails(Long userId);
 
     public Long getUserIdFromRequest(HttpServletRequest request);
 
-    public StudentDetails updateStudentDetails(Long studentId, Long userId, StudentDetailsDto studentDetailsDto);
+    public StudentDetailsResponseDto updateStudentDetails(Long studentId, Long userId, StudentDetailsDto studentDetailsDto);
 
     public  List<StudentProfileDto>  getAllStudents();
 
