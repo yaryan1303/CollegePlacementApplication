@@ -46,11 +46,13 @@ public class ApplicationService {
 
     private PlacementRecordRepository placementRepository;
 
+    private SmsService smsService;
+
 
     @Autowired
     public ApplicationService(CompanyVisitRepository companyVisitRepository,
             ApplicationRepository applicationRepository, EmailService emailService, CompanyRepository companyRepository,
-            ModelMapper modelMapper, StudentDetailsRepository studentRepository, PlacementRecordRepository placementRepository)
+            ModelMapper modelMapper, StudentDetailsRepository studentRepository, PlacementRecordRepository placementRepository, SmsService smsService)
             {
                 this.companyVisitRepository = companyVisitRepository;
                 this.applicationRepository = applicationRepository;
@@ -59,6 +61,7 @@ public class ApplicationService {
                 this.modelMapper = modelMapper;
                 this.studentRepository = studentRepository;
                 this.placementRepository = placementRepository;
+                this.smsService = smsService;
 
             }
 
@@ -172,30 +175,69 @@ public class ApplicationService {
 
     // Update Application Status and also save placed Student in placement Table
 
-    @Transactional
-    public String updateApplicationStatus(Long id, ApplicationStatus status, String feedback) {
-        StudentApplication application = applicationRepository.findByIdWithDetails(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
+    // @Transactional
+    // public String updateApplicationStatus(Long id, ApplicationStatus status, String feedback) {
+    //     StudentApplication application = applicationRepository.findByIdWithDetails(id)
+    //             .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
 
-        // Store previous status for comparison
-        ApplicationStatus previousStatus = application.getStatus();
+    //     // Store previous status for comparison
+    //     ApplicationStatus previousStatus = application.getStatus();
         
-        application.setStatus(status);
-        application.setFeedback(feedback);
-        application = applicationRepository.save(application);
+    //     application.setStatus(status);
+    //     application.setFeedback(feedback);
+    //     application = applicationRepository.save(application);
 
-        // Send email only if status actually changed
-        if (!status.equals(previousStatus)) {
-            sendStatusUpdateEmail(application, status, feedback);
-        }
+    //     // Send email only if status actually changed
+    //     if (!status.equals(previousStatus)) {
+    //         sendStatusUpdateEmail(application, status, feedback);
+    //     }
 
-        if (status == ApplicationStatus.SELECTED) {
-            createPlacementRecord(application);
-        }
+    //     if (status == ApplicationStatus.SELECTED) {
+    //         createPlacementRecord(application);
+    //     }
 
-        return "Application status updated successfully";
-    }
+    //     return "Application status updated successfully";
+    // }
     
+    @Transactional
+public String updateApplicationStatus(Long id, ApplicationStatus status, String feedback) {
+    StudentApplication application = applicationRepository.findByIdWithDetails(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
+
+    ApplicationStatus previousStatus = application.getStatus();
+    
+    application.setStatus(status);
+    application.setFeedback(feedback);
+    application = applicationRepository.save(application);
+
+    // Compose status change message
+    String smsMessage = String.format(
+        "Hi %s, your application status for %s is updated to %s. %s",
+        application.getStudent().getFirstName() + " " + application.getStudent().getLastName(),
+        application.getVisit().getCompany().getName(),
+        status.name(),
+        feedback != null ? "Feedback: " + feedback : ""
+    );
+
+    // Send email and SMS only if status changed
+    if (!status.equals(previousStatus)) {
+        sendStatusUpdateEmail(application, status, feedback);
+
+        try {
+            String studentPhone = application.getStudent().getPhoneNumber(); // assuming this exists
+            smsService.sendSMS(studentPhone, smsMessage);
+        } catch (Exception e) {
+            // log.error("Failed to send SMS to student", e);
+            // Optionally continue without throwing
+        }
+    }
+
+    if (status == ApplicationStatus.SELECTED) {
+        createPlacementRecord(application);
+    }
+
+    return "Application status updated successfully";
+}
     private void sendStatusUpdateEmail(StudentApplication application, 
                                      ApplicationStatus status, String feedback) {
         StudentDetails student = studentRepository.findById(application.getStudent().getStudentId())

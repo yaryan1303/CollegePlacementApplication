@@ -196,4 +196,31 @@ public StudentDetailsResponseDto convertToStudentDetailsResponseDto(StudentDetai
         return modelMapper.map(student, StudentProfileDto.class);
     }
 
+    @Override
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+    }
+
+    @Override
+    public User getUserByToken(String token) {
+        return userRepository.findByResetToken(token)
+                .orElse(null); // Returns null if token is invalid/expired
+    }
+
+    @Override
+    public void updateUserResetToken(String email, String token) {
+        User user = getUserByEmail(email);
+        user.setResetToken(token);
+        userRepository.save(user);
+    }
+
+    @Override
+    public void updateUser(User user) {
+        if (!userRepository.existsById(user.getId())) {
+            throw new ResourceNotFoundException("User not found with id: " + user.getId());
+        }
+        userRepository.save(user);
+    }
+
 }

@@ -27,12 +27,19 @@ public interface UserService {
 
     public Long getUserIdFromRequest(HttpServletRequest request);
 
-    public StudentDetailsResponseDto updateStudentDetails(Long studentId, Long userId, StudentDetailsDto studentDetailsDto);
+    public StudentDetailsResponseDto updateStudentDetails(Long studentId, Long userId,
+            StudentDetailsDto studentDetailsDto);
 
-    public  List<StudentProfileDto>  getAllStudents();
+    public List<StudentProfileDto> getAllStudents();
 
     public StudentProfileDto getStudentById(Long id);
 
-    
+    User getUserByEmail(String email);
+
+    User getUserByToken(String token);
+
+    void updateUserResetToken(String email, String token);
+
+    void updateUser(User user);
 
 }
