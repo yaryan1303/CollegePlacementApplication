@@ -223,4 +223,50 @@ public StudentDetailsResponseDto convertToStudentDetailsResponseDto(StudentDetai
         userRepository.save(user);
     }
 
+
+    //Fetch By BatchYear and Department
+
+    public List<StudentDetailsResponseDto>getStudentByBatchYear(Integer batchYear)
+    {
+        List<StudentDetails> students=studentDetailsRepository.findByBatchYear(batchYear);
+        return students.stream()
+                .map(this::convertToStudentDetailsResponseDto)
+                .toList();
+    }   
+
+    public List<StudentDetailsResponseDto>getStudentByDepartment(Long departmentId)
+    {
+        Optional<Department> department=departmentRepository.findById(departmentId);
+        if(department.isPresent())
+        {
+            List<StudentDetails> students=studentDetailsRepository.findByDepartment(department.get());
+            return students.stream()
+                    .map(this::convertToStudentDetailsResponseDto)
+                    .toList();
+        }
+        else
+        {
+            throw new ResourceNotFoundException("Department not found");
+        }
+        
+    }
+
+    public List<StudentDetailsResponseDto>getStudentByBatchYearAndDepartment(Integer batchYear,Long departmentId)
+    {
+        Optional<Department> department=departmentRepository.findById(departmentId);
+        if(department.isPresent())
+        {
+            List<StudentDetails> students=studentDetailsRepository.findByBatchYearAndDepartment(batchYear,department.get());
+            return students.stream()
+                    .map(this::convertToStudentDetailsResponseDto)
+                    .toList();
+        }   
+        else{
+            
+            throw new ResourceNotFoundException("Department not found and Batch Year not found");
+        }
+    }
+
 }
+
+

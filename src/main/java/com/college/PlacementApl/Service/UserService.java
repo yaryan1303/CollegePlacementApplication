@@ -2,12 +2,8 @@ package com.college.PlacementApl.Service;
 
 import java.util.List;
 
-import org.springframework.security.core.userdetails.UserDetails;
-
-import com.college.PlacementApl.Model.StudentDetails;
 import com.college.PlacementApl.Model.User;
 import com.college.PlacementApl.Security.JwtAuthenticationResponse;
-import com.college.PlacementApl.dtos.CompanyVisitDto;
 import com.college.PlacementApl.dtos.LoginRequest;
 import com.college.PlacementApl.dtos.StudentDetailsDto;
 import com.college.PlacementApl.dtos.StudentDetailsResponseDto;
@@ -41,5 +37,11 @@ public interface UserService {
     void updateUserResetToken(String email, String token);
 
     void updateUser(User user);
+
+    public List<StudentDetailsResponseDto>getStudentByBatchYear(Integer batchYear);
+
+    public List<StudentDetailsResponseDto>getStudentByDepartment(Long departmentId);
+
+    public List<StudentDetailsResponseDto>getStudentByBatchYearAndDepartment(Integer batchYear,Long departmentId);
 
 }

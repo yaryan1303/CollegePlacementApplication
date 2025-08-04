@@ -30,6 +30,7 @@ import com.college.PlacementApl.dtos.CompanyStatsDto;
 import com.college.PlacementApl.dtos.CompanyUpdateDto;
 import com.college.PlacementApl.dtos.CompanyVisitDto;
 import com.college.PlacementApl.dtos.PlacementStatsDto;
+import com.college.PlacementApl.dtos.StudentDetailsResponseDto;
 import com.college.PlacementApl.dtos.StudentProfileDto;
 import com.college.PlacementApl.dtos.VisitCreateDto;
 import com.college.PlacementApl.dtos.VisitUpdateDto;
@@ -98,7 +99,28 @@ public class AdminController {
         return ResponseEntity.ok(studentService.getStudentById(id));
     }
 
-    //////////////////////////////// --------------------------------------->>>>>>>>>>>>>>>>>>>>>>>
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /// Fetching student by branch and department
+    /// 
+    @GetMapping("/students/batch/{batchYear}")
+    public ResponseEntity<List<StudentDetailsResponseDto>> getStudentByBatchYear(@PathVariable Integer batchYear) {
+        return ResponseEntity.ok(studentService.getStudentByBatchYear(batchYear));
+    }
+
+    @GetMapping("/students/department/{departmentId}")
+    public ResponseEntity<List<StudentDetailsResponseDto>> getStudentByDepartment(@PathVariable Long departmentId) {
+        return ResponseEntity.ok(studentService.getStudentByDepartment(departmentId));
+    }
+
+    @GetMapping("/students/batch/{batchYear}/department/{departmentId}")
+    public ResponseEntity<List<StudentDetailsResponseDto>> getStudentByBatchYearAndDepartment(
+            @PathVariable Integer batchYear,
+            @PathVariable Long departmentId) {
+                return ResponseEntity.ok(studentService.getStudentByBatchYearAndDepartment(batchYear, departmentId));
+    }
+
+    
+   //////////////////////////////// --------------------------------------->>>>>>>>>>>>>>>>>>>>>>>
     /// Company Controller
     ///
 
