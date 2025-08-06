@@ -32,6 +32,7 @@ import com.college.PlacementApl.dtos.PlacementRecordDto;
 import com.college.PlacementApl.dtos.PlacementRecordResponseDto;
 import com.college.PlacementApl.dtos.StudentDetailsDto;
 import com.college.PlacementApl.dtos.StudentDetailsResponseDto;
+import com.college.PlacementApl.dtos.StudentProfileDto;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -92,11 +93,19 @@ public class UserController {
 
     // GetStudent Details by using userId
 
-    @GetMapping("/me/{userId}")
-    public ResponseEntity<StudentDetailsResponseDto> getStudentDetails(@PathVariable Long userId) {
-        StudentDetailsResponseDto studentDetails = userService.getStudentDetails(userId);
+    // @GetMapping("/me/{userId}")
+    // public ResponseEntity<StudentDetailsResponseDto> getStudentDetails(@PathVariable Long userId) {
+    //     StudentDetailsResponseDto studentDetails = userService.getStudentDetails(userId);
 
-        return ResponseEntity.ok(studentDetails);
+    //     return ResponseEntity.ok(studentDetails);
+    // }
+
+
+    @GetMapping("/me/{studentId}")
+    public ResponseEntity<StudentProfileDto>getStudentDetailsById(@PathVariable Long studentId)
+    {
+        return ResponseEntity.ok(userService.getStudentById(studentId));
+
     }
 
     @PutMapping("/me/{studentId}")

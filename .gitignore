@@ -4,6 +4,12 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+.env
+.env-prod
+Dockerfile
+docker-compose.yml
+logs/
+src/main/java/com/college/PlacementApl/Config/CorsConfig.java
 ### STS ###
 .apt_generated
 .classpath
