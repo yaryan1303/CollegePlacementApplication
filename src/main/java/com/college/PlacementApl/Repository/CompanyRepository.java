@@ -1,6 +1,7 @@
 package com.college.PlacementApl.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -22,5 +23,10 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
             "GROUP BY c.name " +
             "ORDER BY c.name")
     List<CompanyStatsDto> getCompanyStats();
+
+
+    Optional<Company> findByName(String name);
+    Optional<Company> findByContactEmail(String contactEmail);
+
 
 }

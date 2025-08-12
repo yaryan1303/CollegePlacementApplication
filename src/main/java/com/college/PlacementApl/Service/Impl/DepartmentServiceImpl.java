@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.college.PlacementApl.Model.Department;
 import com.college.PlacementApl.Repository.DepartmentRepository;
 import com.college.PlacementApl.Service.DepartmentService;
+import com.college.PlacementApl.utilites.DepartmentAlreadyExistsException;
 
 @Service
 public class DepartmentServiceImpl implements DepartmentService {
@@ -20,6 +21,10 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     public Department createDepartment(Department department) {
+        if(departmentRepository.findByName(department.getName()).isPresent())
+        {
+            throw new DepartmentAlreadyExistsException("Department already exists");
+        }
 
         return departmentRepository.save(department);
     }
@@ -32,6 +37,11 @@ public class DepartmentServiceImpl implements DepartmentService {
     public Department updateDepartment(Long id, Department department) {
         Department existingDepartment = departmentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Department not found"));
+         if(departmentRepository.findByName(department.getName()).isPresent())
+        {
+            throw new DepartmentAlreadyExistsException("Department already exists");
+        }
+
 
         existingDepartment.setName(department.getName());
 

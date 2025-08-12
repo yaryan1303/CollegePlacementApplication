@@ -34,6 +34,16 @@ public class CompanyServiceImpl implements companyService {
     }
 
     public CompanyDto createCompany(CompanyCreateDto createDto) {
+
+        if(companyRepository.findByName(createDto.getName()).isPresent())
+        {
+            throw new BusinessException("Company already exists");
+        }
+
+        if(companyRepository.findByContactEmail(createDto.getContactEmail()).isPresent())
+        {
+            throw new BusinessException("Contact Email already exists");
+        }
         Company company = new Company();
         company.setName(createDto.getName());
         company.setDescription(createDto.getDescription());

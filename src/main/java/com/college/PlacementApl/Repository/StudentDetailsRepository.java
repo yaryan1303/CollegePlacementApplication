@@ -33,4 +33,6 @@ public interface StudentDetailsRepository extends JpaRepository<StudentDetails, 
 
     List<StudentDetails> findByBatchYearAndDepartment(Integer batchYear, Department department);
 
+    Optional<StudentDetails> findByRollNumber(String rollNumber);
+
 }

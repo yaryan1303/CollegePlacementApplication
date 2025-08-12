@@ -50,11 +50,14 @@ public class UserServiceImpl implements UserService {
 
     private DepartmentRepository departmentRepository;
 
+    private StudentDetailsRepository studentRepository;
+
+
     @Autowired
     public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder,
             AuthenticationManager authenticationManager, JwtUtils jwtUtils,
             StudentDetailsRepository studentDetailsRepository, ModelMapper modelMapper,
-            DepartmentRepository departmentRepository) {
+            DepartmentRepository departmentRepository, StudentDetailsRepository studentRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -62,6 +65,7 @@ public class UserServiceImpl implements UserService {
         this.studentDetailsRepository = studentDetailsRepository;
         this.modelMapper = modelMapper;
         this.departmentRepository = departmentRepository;
+        this.studentRepository = studentRepository;
     }
 
     public User registerUser(User user) {
@@ -97,6 +101,11 @@ public StudentDetailsResponseDto saveStudent(StudentDetailsDto studentDetailsDto
 
     Department department = departmentRepository.findById(studentDetailsDto.getDepartmentId())
             .orElseThrow(() -> new ResourceNotFoundException("Department not found with ID: " + studentDetailsDto.getDepartmentId()));
+
+    if(studentDetailsRepository.findByRollNumber(studentDetailsDto.getRollNumber()).isPresent())
+    {
+        throw new ResourceNotFoundException("Roll Number already exists");
+    }
 
     StudentDetails studentDetails = new StudentDetails();
     studentDetails.setUser(user);

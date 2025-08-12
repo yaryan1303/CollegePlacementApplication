@@ -82,7 +82,7 @@ public class UserController {
     @PostMapping("/me")
     public ResponseEntity<StudentDetailsResponseDto> SaveStudentDetails(HttpServletRequest request,
            @Valid @RequestBody StudentDetailsDto studentDetailsDto) {
-        System.out.println(studentDetailsDto);
+        // System.out.println(studentDetailsDto);
         Long userId = userService.getUserIdFromRequest(request);
         studentDetailsDto.setUserId(userId);
 
@@ -93,20 +93,20 @@ public class UserController {
 
     // GetStudent Details by using userId
 
-    // @GetMapping("/me/{userId}")
-    // public ResponseEntity<StudentDetailsResponseDto> getStudentDetails(@PathVariable Long userId) {
-    //     StudentDetailsResponseDto studentDetails = userService.getStudentDetails(userId);
+    @GetMapping("/me/{userId}")
+    public ResponseEntity<StudentDetailsResponseDto> getStudentDetails(@PathVariable Long userId) {
+        StudentDetailsResponseDto studentDetails = userService.getStudentDetails(userId);
 
-    //     return ResponseEntity.ok(studentDetails);
-    // }
-
-
-    @GetMapping("/me/{studentId}")
-    public ResponseEntity<StudentProfileDto>getStudentDetailsById(@PathVariable Long studentId)
-    {
-        return ResponseEntity.ok(userService.getStudentById(studentId));
-
+        return ResponseEntity.ok(studentDetails);
     }
+
+
+    // @GetMapping("/me/{studentId}")
+    // public ResponseEntity<StudentProfileDto>getStudentDetailsById(@PathVariable Long studentId)
+    // {
+    //     return ResponseEntity.ok(userService.getStudentById(studentId));
+
+    // }
 
     @PutMapping("/me/{studentId}")
     public ResponseEntity<StudentDetailsResponseDto> updateStudentDetails(

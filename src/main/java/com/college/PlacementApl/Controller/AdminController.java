@@ -2,6 +2,8 @@ package com.college.PlacementApl.Controller;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -17,9 +19,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.college.PlacementApl.Model.Department;
+import com.college.PlacementApl.Model.PlacementRecord;
 import com.college.PlacementApl.Service.AdminVisitService;
 import com.college.PlacementApl.Service.ApplicationService;
 import com.college.PlacementApl.Service.DepartmentService;
+import com.college.PlacementApl.Service.PlacementRecordService;
 import com.college.PlacementApl.Service.Placement_Service;
 import com.college.PlacementApl.Service.UserService;
 import com.college.PlacementApl.Service.companyService;
@@ -29,6 +33,8 @@ import com.college.PlacementApl.dtos.CompanyDto;
 import com.college.PlacementApl.dtos.CompanyStatsDto;
 import com.college.PlacementApl.dtos.CompanyUpdateDto;
 import com.college.PlacementApl.dtos.CompanyVisitDto;
+import com.college.PlacementApl.dtos.PlacementRecordDto;
+import com.college.PlacementApl.dtos.PlacementRecordResponseDto;
 import com.college.PlacementApl.dtos.PlacementStatsDto;
 import com.college.PlacementApl.dtos.StudentDetailsResponseDto;
 import com.college.PlacementApl.dtos.StudentProfileDto;
@@ -55,35 +61,39 @@ public class AdminController {
 
     private DepartmentService departmentService;
 
-
+    private PlacementRecordService placementRecordService;
 
     @Autowired
     public AdminController(UserService studentService, companyService companyService, AdminVisitService visitService,
-            Placement_Service placementService, ApplicationService applicationService, DepartmentService departmentService) {
+            Placement_Service placementService, ApplicationService applicationService,
+            DepartmentService departmentService, PlacementRecordService placementRecordService) {
         this.studentService = studentService;
         this.companyService = companyService;
         this.visitService = visitService;
         this.placementService = placementService;
         this.applicationService = applicationService;
         this.departmentService = departmentService;
+        this.placementRecordService = placementRecordService;
     }
 
-    // Category Controller 
+    // Category Controller
     @PostMapping("/departments")
     public ResponseEntity<Department> createDepartment(@Valid @RequestBody Department department) {
         Department createdDepartment = departmentService.createDepartment(department);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdDepartment);
-        }
-
+    }
 
     @PutMapping("/departments/{id}")
-    public ResponseEntity<Department> updateDepartment(@PathVariable Long id,@Valid @RequestBody Department department) {
+    public ResponseEntity<Department> updateDepartment(@PathVariable Long id,
+            @Valid @RequestBody Department department) {
         Department updatedDepartment = departmentService.updateDepartment(id, department);
         return ResponseEntity.ok(updatedDepartment);
     }
 
-
-    
+    @GetMapping("/departments")
+    public ResponseEntity<List<Department>> getAllDepartments() {
+        return ResponseEntity.ok(departmentService.getAllDepartments());
+    }
 
     //////////////// ----------------------------------------------------------------->>>>>>>>
     /// Student Details
@@ -101,7 +111,7 @@ public class AdminController {
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Fetching student by branch and department
-    /// 
+    ///
     @GetMapping("/students/batch/{batchYear}")
     public ResponseEntity<List<StudentDetailsResponseDto>> getStudentByBatchYear(@PathVariable Integer batchYear) {
         return ResponseEntity.ok(studentService.getStudentByBatchYear(batchYear));
@@ -116,11 +126,10 @@ public class AdminController {
     public ResponseEntity<List<StudentDetailsResponseDto>> getStudentByBatchYearAndDepartment(
             @PathVariable Integer batchYear,
             @PathVariable Long departmentId) {
-                return ResponseEntity.ok(studentService.getStudentByBatchYearAndDepartment(batchYear, departmentId));
+        return ResponseEntity.ok(studentService.getStudentByBatchYearAndDepartment(batchYear, departmentId));
     }
 
-    
-   //////////////////////////////// --------------------------------------->>>>>>>>>>>>>>>>>>>>>>>
+    //////////////////////////////// --------------------------------------->>>>>>>>>>>>>>>>>>>>>>>
     /// Company Controller
     ///
 
@@ -165,7 +174,7 @@ public class AdminController {
     @PutMapping("/visits/{id}")
     public ResponseEntity<CompanyVisitDto> updateVisit(
             @PathVariable Long id,
-           @Valid @RequestBody VisitUpdateDto updateDto) {
+            @Valid @RequestBody VisitUpdateDto updateDto) {
         return ResponseEntity.ok(visitService.updateVisit(id, updateDto));
     }
 
@@ -221,6 +230,28 @@ public class AdminController {
                 .header("Content-Disposition", "attachment; filename=company-stats.xlsx")
                 .header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                 .body(excelData);
+    }
+
+    @GetMapping("/records")
+    public ResponseEntity<List<PlacementRecordDto>> getPlacementRecords(
+            @RequestParam(required = false) Integer batchYear,
+            @RequestParam(required = false) String companyName) {
+        return ResponseEntity.ok(placementService.getPlacementRecords(batchYear, companyName));
+    }
+
+    @GetMapping("/placementsRecords")
+    public ResponseEntity<List<PlacementRecordResponseDto>> getAllPlacements() {
+        return ResponseEntity.ok(placementRecordService.getAllPlacementRecords());
+    }
+
+    @GetMapping("/branch-year-wise")
+    public ResponseEntity<Map<String, Map<String, List<PlacementRecordDto>>>> getBranchYearWisePlacements() {
+        return ResponseEntity.ok(placementService.getBranchYearWisePlacements());
+    }
+
+    @GetMapping("/count-by-batch-year")
+    public ResponseEntity<Map<Integer, Long>> getPlacementCountByBatchYear() {
+        return ResponseEntity.ok(placementService.getPlacementCountByBatchYear());
     }
 
 }

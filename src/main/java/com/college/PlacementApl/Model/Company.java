@@ -39,26 +39,26 @@ public class Company {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long companyId;
-    
-    @Column(nullable = false)
+
+    @Column(name = "name", columnDefinition = "TEXT")
     private String name;
-    
+
     private String description;
     private String website;
     private String contactEmail;
     private String contactPhone;
-    
+
     @CreationTimestamp
     private LocalDateTime createdAt;
-    
+
     @UpdateTimestamp
     private LocalDateTime updatedAt;
-    
+
     @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<CompanyVisit> visits;
-    
+
     @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<PlacementRecord> placementRecords;
-    
+
     // Constructors, getters, setters
 }

@@ -5,17 +5,21 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.college.PlacementApl.Model.Role;
 import com.college.PlacementApl.Model.StudentDetails;
 import com.college.PlacementApl.Model.User;
 import com.college.PlacementApl.Repository.RoleRepository;
+import com.college.PlacementApl.Repository.UserRepository;
 import com.college.PlacementApl.Service.EmailService;
 import com.college.PlacementApl.Service.SmsService;
 import com.college.PlacementApl.Service.UserService;
@@ -25,6 +29,7 @@ import com.college.PlacementApl.dtos.LoginRequest;
 import com.college.PlacementApl.dtos.RegisterRequest;
 import com.college.PlacementApl.dtos.ResetPasswordRequest;
 import com.college.PlacementApl.dtos.UserResponseDto;
+import com.college.PlacementApl.utilites.UserAlreadyExistsException;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -43,16 +48,21 @@ public class AuthController {
 
     private PasswordEncoder passwordEncoder;
 
+    private UserRepository userRepository;
 
+
+    @Value("${Fronted_url}")
+    private String fronted_url;
 
     @Autowired
     public AuthController(UserService userService, RoleRepository roleRepository, EmailService emailService,
-            SmsService smsService, PasswordEncoder passwordEncoder) {
+            SmsService smsService, PasswordEncoder passwordEncoder, UserRepository userRepository) {
         this.userService = userService;
         this.roleRepository = roleRepository;
         this.emailService = emailService;
         this.smsService = smsService;
         this.passwordEncoder = passwordEncoder;
+        this.userRepository = userRepository;
     }
 
     @PostMapping("/public/login")
@@ -64,6 +74,15 @@ public class AuthController {
 
     @PostMapping("/public/register")
     public ResponseEntity<UserResponseDto> registerUser(@Valid @RequestBody RegisterRequest registerRequest) {
+        // Check if username exists
+        if (userRepository.findByUsername(registerRequest.getUsername()).isPresent()) {
+            throw new UserAlreadyExistsException("Username already taken: " + registerRequest.getUsername());
+        }
+
+        // Check if email exists
+        if (userRepository.findByEmail(registerRequest.getEmail()).isPresent()) {
+            throw new UserAlreadyExistsException("Email already in use: " + registerRequest.getEmail());
+        }
         User user = new User();
         user.setUsername(registerRequest.getUsername());
         user.setEmail(registerRequest.getEmail());
@@ -110,7 +129,7 @@ public class AuthController {
         userService.updateUserResetToken(email, resetToken);
 
         // Generate reset URL
-        String url = emailService.generateUrl(request) + "/api/auth/public/reset-password?token=" + resetToken;
+        String url = fronted_url + "/api/auth/public/reset-password?token=" + resetToken;
 
         // Send via both channels
         boolean emailSent = false;
@@ -119,7 +138,7 @@ public class AuthController {
 
         // 1. Send Email
         try {
-            emailSent = emailService.sendMail( url,
+            emailSent = emailService.sendMail(url,
                     email);
         } catch (Exception e) {
             errors.add("Email failed: " + e.getMessage());
@@ -127,11 +146,11 @@ public class AuthController {
 
         StudentDetails studentDetails = user.getStudentDetails();
 
-
         // 2. Send SMS if phone exists
-        if (studentDetails != null && studentDetails.getPhoneNumber() != null && !studentDetails.getPhoneNumber().isBlank()) {
+        if (studentDetails != null && studentDetails.getPhoneNumber() != null
+                && !studentDetails.getPhoneNumber().isBlank()) {
             try {
-                String smsMessage = "Your password reset link: " +url;
+                String smsMessage = "Your password reset link: " + url;
                 smsService.sendSMS(studentDetails.getPhoneNumber(), smsMessage);
                 smsSent = true;
             } catch (Exception e) {
@@ -155,6 +174,20 @@ public class AuthController {
         }
     }
 
+    @GetMapping("public/validate-reset-token")
+    public ResponseEntity<GenericResponse> validateResetToken(@RequestParam String token) {
+        User user = userService.getUserByToken(token);
+
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(new GenericResponse(false, "Invalid or expired reset token"));
+        }
+
+        // Return the email associated with the token for verification
+        return ResponseEntity.ok()
+                .body(new GenericResponse(true, token));
+    }
+
     @PostMapping("/public/reset-password")
     public ResponseEntity<GenericResponse> resetPassword(
             @RequestBody ResetPasswordRequest resetPasswordRequest) {
@@ -162,9 +195,8 @@ public class AuthController {
         String token = resetPasswordRequest.getToken();
         String newPassword = resetPasswordRequest.getNewPassword();
 
-        // Validate token and reset password in one step
+        // Validate token first
         User user = userService.getUserByToken(token);
-
         if (user == null) {
             return ResponseEntity.badRequest()
                     .body(new GenericResponse(false, "Invalid or expired reset token"));
