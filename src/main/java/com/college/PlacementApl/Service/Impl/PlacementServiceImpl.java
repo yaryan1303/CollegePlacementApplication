@@ -17,6 +17,7 @@ import com.college.PlacementApl.Repository.StudentDetailsRepository;
 import com.college.PlacementApl.Service.Placement_Service;
 import com.college.PlacementApl.dtos.BatchStatsDto;
 import com.college.PlacementApl.dtos.PlacementRecordDto;
+import com.college.PlacementApl.dtos.PlacementRecordResponseDto;
 import com.college.PlacementApl.dtos.PlacementStatsDto;
 
 @Service
@@ -38,16 +39,45 @@ public class PlacementServiceImpl implements Placement_Service {
         
     }
 
-    public List<PlacementRecordDto> getPlacementRecords(Integer batchYear, String companyName) {
-        List<PlacementRecord> records = placementRepository.findByBatchYearOrCompanyName(batchYear, companyName);
+   @Override
+public List<PlacementRecordResponseDto> getPlacementRecords(Integer batchYear, String companyName) {
+    // Fetch placement records from repository
+    List<PlacementRecord> records = placementRepository.findByBatchYearOrCompanyName(batchYear, companyName);
 
-        System.out.println(records+"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+    // Convert each PlacementRecord → DTO manually
+    return records.stream()
+            .map(record -> {
+                PlacementRecordResponseDto dto = new PlacementRecordResponseDto();
+                dto.setRecordId(record.getRecordId());
 
-        return records.stream()
-                .map(this::convertToPlacementRecordDto)
-                .collect(Collectors.toList());
+                // Student Info
+                dto.setStudentId(record.getStudent().getStudentId());
+                dto.setStudentName(record.getStudent().getFirstName() + " " + record.getStudent().getLastName());
+                dto.setRollNumber(record.getStudent().getRollNumber());
 
-    }
+                // Company Info
+                dto.setCompanyId(record.getCompany().getCompanyId());
+                dto.setCompanyName(record.getCompany().getName());
+
+                // Visit Info
+                dto.setVisitId(record.getVisit().getVisitId());
+                dto.setVisitDate(record.getVisit().getVisitDate());
+
+                // Placement Details
+                dto.setPosition(record.getPosition());
+                dto.setSalaryPackage(record.getSalaryPackage());
+                dto.setPlacementDate(record.getPlacementDate());
+                dto.setInternship(record.isInternship());
+
+                // Audit fields
+                dto.setCreatedAt(record.getCreatedAt());
+                dto.setUpdatedAt(record.getUpdatedAt());
+
+                return dto;
+            })
+            .collect(Collectors.toList());
+}
+
 
 
     /////////////////////---------------------------------------------->>>>>>>>>>>>>>>>>>>>>>
@@ -98,6 +128,7 @@ public Map<Integer, Long> getPlacementCountByBatchYear() {
 
     private PlacementRecordDto convertToPlacementRecordDto(PlacementRecord record) {
         PlacementRecordDto dto = new PlacementRecordDto();
+        
         dto.setRecordId(record.getRecordId());
         dto.setStudentId(record.getStudent().getStudentId());
         dto.setStudentName(record.getStudent().getFirstName() + " " + record.getStudent().getLastName());

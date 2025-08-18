@@ -4,11 +4,12 @@ import java.util.List;
 import java.util.Map;
 
 import com.college.PlacementApl.dtos.PlacementRecordDto;
+import com.college.PlacementApl.dtos.PlacementRecordResponseDto;
 import com.college.PlacementApl.dtos.PlacementStatsDto;
 
 public interface Placement_Service {
 
-    List<PlacementRecordDto> getPlacementRecords(Integer batchYear, String companyName);
+    List<PlacementRecordResponseDto> getPlacementRecords(Integer batchYear, String companyName);
 
     PlacementStatsDto getPlacementSummary();
 

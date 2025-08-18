@@ -233,7 +233,7 @@ public class AdminController {
     }
 
     @GetMapping("/records")
-    public ResponseEntity<List<PlacementRecordDto>> getPlacementRecords(
+    public ResponseEntity<List<PlacementRecordResponseDto>> getPlacementRecords(
             @RequestParam(required = false) Integer batchYear,
             @RequestParam(required = false) String companyName) {
         return ResponseEntity.ok(placementService.getPlacementRecords(batchYear, companyName));

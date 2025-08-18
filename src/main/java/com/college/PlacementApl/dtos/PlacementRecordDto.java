@@ -15,6 +15,7 @@ public class PlacementRecordDto {
     private String studentName;
     private Long companyId;
     private String companyName;
+    private Long rollNumber;
     private Long visitId;
     private String position;
     private String salaryPackage;

@@ -40,7 +40,7 @@ public class Company {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long companyId;
 
-    @Column(name = "name", columnDefinition = "TEXT")
+    @Column(name = "name", nullable = false, length = 255) // varchar(255)
     private String name;
 
     private String description;

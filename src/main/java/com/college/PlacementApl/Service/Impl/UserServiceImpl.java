@@ -52,7 +52,6 @@ public class UserServiceImpl implements UserService {
 
     private StudentDetailsRepository studentRepository;
 
-
     @Autowired
     public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder,
             AuthenticationManager authenticationManager, JwtUtils jwtUtils,
@@ -94,54 +93,54 @@ public class UserServiceImpl implements UserService {
     // Saving the Student
     // Information-------------------------------------------------------->>>>>>>
 
-   @Override
-public StudentDetailsResponseDto saveStudent(StudentDetailsDto studentDetailsDto) {
-    User user = userRepository.findById(studentDetailsDto.getUserId())
-            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + studentDetailsDto.getUserId()));
+    @Override
+    public StudentDetailsResponseDto saveStudent(StudentDetailsDto studentDetailsDto) {
+        User user = userRepository.findById(studentDetailsDto.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "User not found with ID: " + studentDetailsDto.getUserId()));
 
-    Department department = departmentRepository.findById(studentDetailsDto.getDepartmentId())
-            .orElseThrow(() -> new ResourceNotFoundException("Department not found with ID: " + studentDetailsDto.getDepartmentId()));
+        Department department = departmentRepository.findById(studentDetailsDto.getDepartmentId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Department not found with ID: " + studentDetailsDto.getDepartmentId()));
 
-    if(studentDetailsRepository.findByRollNumber(studentDetailsDto.getRollNumber()).isPresent())
-    {
-        throw new ResourceNotFoundException("Roll Number already exists");
+        if (studentDetailsRepository.findByRollNumber(studentDetailsDto.getRollNumber()).isPresent()) {
+            throw new ResourceNotFoundException("Roll Number already exists");
+        }
+
+        StudentDetails studentDetails = new StudentDetails();
+        studentDetails.setUser(user);
+        studentDetails.setDepartment(department);
+        studentDetails.setFirstName(studentDetailsDto.getFirstName());
+        studentDetails.setLastName(studentDetailsDto.getLastName());
+        studentDetails.setRollNumber(studentDetailsDto.getRollNumber());
+        studentDetails.setBatchYear(studentDetailsDto.getBatchYear());
+        studentDetails.setCgpa(studentDetailsDto.getCgpa());
+        studentDetails.setResumeUrl(studentDetailsDto.getResumeUrl());
+        studentDetails.setPhoneNumber(studentDetailsDto.getPhoneNumber());
+        studentDetails.setCurrentStatus(studentDetailsDto.getCurrentStatus());
+
+        // Establish bi-directional mapping if required
+        user.setStudentDetails(studentDetails);
+
+        studentDetailsRepository.save(studentDetails);
+
+        return convertToStudentDetailsResponseDto(studentDetails);
     }
 
-    StudentDetails studentDetails = new StudentDetails();
-    studentDetails.setUser(user);
-    studentDetails.setDepartment(department);
-    studentDetails.setFirstName(studentDetailsDto.getFirstName());
-    studentDetails.setLastName(studentDetailsDto.getLastName());
-    studentDetails.setRollNumber(studentDetailsDto.getRollNumber());
-    studentDetails.setBatchYear(studentDetailsDto.getBatchYear());
-    studentDetails.setCgpa(studentDetailsDto.getCgpa());
-    studentDetails.setResumeUrl(studentDetailsDto.getResumeUrl());
-    studentDetails.setPhoneNumber(studentDetailsDto.getPhoneNumber());
-    studentDetails.setCurrentStatus(studentDetailsDto.getCurrentStatus());
-
-    // Establish bi-directional mapping if required
-    user.setStudentDetails(studentDetails);
-
-    studentDetailsRepository.save(studentDetails);
-
-    return convertToStudentDetailsResponseDto(studentDetails);
-}
-
-public StudentDetailsResponseDto convertToStudentDetailsResponseDto(StudentDetails studentDetails) {
-    StudentDetailsResponseDto responseDto = new StudentDetailsResponseDto();
-    responseDto.setStudentId(studentDetails.getStudentId());
-    responseDto.setFirstName(studentDetails.getFirstName());
-    responseDto.setLastName(studentDetails.getLastName());
-    responseDto.setRollNumber(studentDetails.getRollNumber());
-    responseDto.setBatchYear(studentDetails.getBatchYear());
-    responseDto.setDepartment(studentDetails.getDepartment().getName());
-    responseDto.setCgpa(studentDetails.getCgpa());
-    responseDto.setResumeUrl(studentDetails.getResumeUrl());
-    responseDto.setPhoneNumber(studentDetails.getPhoneNumber());
-    responseDto.setCurrentStatus(studentDetails.getCurrentStatus().toString());
-    return responseDto;
-}
-
+    public StudentDetailsResponseDto convertToStudentDetailsResponseDto(StudentDetails studentDetails) {
+        StudentDetailsResponseDto responseDto = new StudentDetailsResponseDto();
+        responseDto.setStudentId(studentDetails.getStudentId());
+        responseDto.setFirstName(studentDetails.getFirstName());
+        responseDto.setLastName(studentDetails.getLastName());
+        responseDto.setRollNumber(studentDetails.getRollNumber());
+        responseDto.setBatchYear(studentDetails.getBatchYear());
+        responseDto.setDepartment(studentDetails.getDepartment().getName());
+        responseDto.setCgpa(studentDetails.getCgpa());
+        responseDto.setResumeUrl(studentDetails.getResumeUrl());
+        responseDto.setPhoneNumber(studentDetails.getPhoneNumber());
+        responseDto.setCurrentStatus(studentDetails.getCurrentStatus().toString());
+        return responseDto;
+    }
 
     @Override
     public StudentDetailsResponseDto getStudentDetails(Long userId) {
@@ -162,7 +161,8 @@ public StudentDetailsResponseDto convertToStudentDetailsResponseDto(StudentDetai
 
     // Update studentDetails using studentId
     @Override
-    public StudentDetailsResponseDto updateStudentDetails(Long studentId, Long userId, StudentDetailsDto studentDetailsDto) {
+    public StudentDetailsResponseDto updateStudentDetails(Long studentId, Long userId,
+            StudentDetailsDto studentDetailsDto) {
         StudentDetails student = studentDetailsRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 
@@ -191,10 +191,29 @@ public StudentDetailsResponseDto convertToStudentDetailsResponseDto(StudentDetai
 
     // Fetch All the Students
 
+    // @Override
+    // public List<StudentProfileDto> getAllStudents() {
+    // return studentDetailsRepository.findAll().stream()
+    // .map(student -> modelMapper.map(student, StudentProfileDto.class))
+    // .toList();
+    // }
+
     @Override
     public List<StudentProfileDto> getAllStudents() {
         return studentDetailsRepository.findAll().stream()
-                .map(student -> modelMapper.map(student, StudentProfileDto.class))
+                .map(student -> new StudentProfileDto(
+                        student.getStudentId(),
+                        student.getFirstName(),
+                        student.getLastName(),
+                        student.getRollNumber(),
+                        student.getBatchYear(),
+                        student.getDepartment() != null ? student.getDepartment().getName() : null, // assuming
+                                                                                                    // Department has a
+                                                                                                    // name
+                        student.getCgpa(),
+                        student.getResumeUrl(),
+                        student.getPhoneNumber(),
+                        student.getCurrentStatus()))
                 .toList();
     }
 
@@ -232,50 +251,40 @@ public StudentDetailsResponseDto convertToStudentDetailsResponseDto(StudentDetai
         userRepository.save(user);
     }
 
+    // Fetch By BatchYear and Department
 
-    //Fetch By BatchYear and Department
-
-    public List<StudentDetailsResponseDto>getStudentByBatchYear(Integer batchYear)
-    {
-        List<StudentDetails> students=studentDetailsRepository.findByBatchYear(batchYear);
+    public List<StudentDetailsResponseDto> getStudentByBatchYear(Integer batchYear) {
+        List<StudentDetails> students = studentDetailsRepository.findByBatchYear(batchYear);
         return students.stream()
                 .map(this::convertToStudentDetailsResponseDto)
                 .toList();
-    }   
-
-    public List<StudentDetailsResponseDto>getStudentByDepartment(Long departmentId)
-    {
-        Optional<Department> department=departmentRepository.findById(departmentId);
-        if(department.isPresent())
-        {
-            List<StudentDetails> students=studentDetailsRepository.findByDepartment(department.get());
-            return students.stream()
-                    .map(this::convertToStudentDetailsResponseDto)
-                    .toList();
-        }
-        else
-        {
-            throw new ResourceNotFoundException("Department not found");
-        }
-        
     }
 
-    public List<StudentDetailsResponseDto>getStudentByBatchYearAndDepartment(Integer batchYear,Long departmentId)
-    {
-        Optional<Department> department=departmentRepository.findById(departmentId);
-        if(department.isPresent())
-        {
-            List<StudentDetails> students=studentDetailsRepository.findByBatchYearAndDepartment(batchYear,department.get());
+    public List<StudentDetailsResponseDto> getStudentByDepartment(Long departmentId) {
+        Optional<Department> department = departmentRepository.findById(departmentId);
+        if (department.isPresent()) {
+            List<StudentDetails> students = studentDetailsRepository.findByDepartment(department.get());
             return students.stream()
                     .map(this::convertToStudentDetailsResponseDto)
                     .toList();
-        }   
-        else{
-            
+        } else {
+            throw new ResourceNotFoundException("Department not found");
+        }
+
+    }
+
+    public List<StudentDetailsResponseDto> getStudentByBatchYearAndDepartment(Integer batchYear, Long departmentId) {
+        Optional<Department> department = departmentRepository.findById(departmentId);
+        if (department.isPresent()) {
+            List<StudentDetails> students = studentDetailsRepository.findByBatchYearAndDepartment(batchYear,
+                    department.get());
+            return students.stream()
+                    .map(this::convertToStudentDetailsResponseDto)
+                    .toList();
+        } else {
+
             throw new ResourceNotFoundException("Department not found and Batch Year not found");
         }
     }
 
 }
-
-

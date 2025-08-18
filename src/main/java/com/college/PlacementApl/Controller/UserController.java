@@ -1,6 +1,8 @@
 package com.college.PlacementApl.Controller;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -15,25 +17,23 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.college.PlacementApl.Model.Department;
-import com.college.PlacementApl.Model.StudentDetails;
 import com.college.PlacementApl.Security.JwtUtils;
 import com.college.PlacementApl.Service.ApplicationService;
 import com.college.PlacementApl.Service.DepartmentService;
 import com.college.PlacementApl.Service.PlacementRecordService;
 import com.college.PlacementApl.Service.Placement_Service;
+import com.college.PlacementApl.Service.ResumeService;
 import com.college.PlacementApl.Service.UserService;
 import com.college.PlacementApl.Service.companyService;
 import com.college.PlacementApl.dtos.ApplicationRequestDto;
 import com.college.PlacementApl.dtos.ApplicationResponseDto;
 import com.college.PlacementApl.dtos.ApplicationDto;
-import com.college.PlacementApl.dtos.CompanyDto;
 import com.college.PlacementApl.dtos.CompanyVisitResponseDto;
 import com.college.PlacementApl.dtos.PlacementRecordDto;
 import com.college.PlacementApl.dtos.PlacementRecordResponseDto;
+import com.college.PlacementApl.dtos.ResumeRequest;
 import com.college.PlacementApl.dtos.StudentDetailsDto;
 import com.college.PlacementApl.dtos.StudentDetailsResponseDto;
-import com.college.PlacementApl.dtos.StudentProfileDto;
-
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
@@ -55,12 +55,15 @@ public class UserController {
 
     private PlacementRecordService placementRecordService;
 
+    private ResumeService resumeService;
+
+
 
 
     @Autowired
     public UserController(UserService userService, companyService companyService, Placement_Service placementService,
             ApplicationService applicationService, JwtUtils jwtUtils, DepartmentService departmentService,
-            PlacementRecordService placementRecordService) {
+            PlacementRecordService placementRecordService, ResumeService resumeService) {
         this.userService = userService;
         this.companyService = companyService;
         this.placementService = placementService;
@@ -68,6 +71,7 @@ public class UserController {
         this.jwtUtils = jwtUtils;
         this.departmentService = departmentService;
         this.placementRecordService = placementRecordService;
+        this.resumeService = resumeService;
     }
 
     // Department Controller
@@ -108,19 +112,19 @@ public class UserController {
 
     // }
 
-    @PutMapping("/me/{studentId}")
-    public ResponseEntity<StudentDetailsResponseDto> updateStudentDetails(
-            HttpServletRequest request,
-            @PathVariable Long studentId,
-            @Valid @RequestBody StudentDetailsDto studentDetailsDto) {
+    // @PutMapping("/me/{studentId}")
+    // public ResponseEntity<StudentDetailsResponseDto> updateStudentDetails(
+    //         HttpServletRequest request,
+    //         @PathVariable Long studentId,
+    //         @Valid @RequestBody StudentDetailsDto studentDetailsDto) {
 
-        Long userId = userService.getUserIdFromRequest(request);
+    //     Long userId = userService.getUserIdFromRequest(request);
 
-        // Validate ownership inside service layer
-        StudentDetailsResponseDto updatedStudent = userService.updateStudentDetails(studentId, userId, studentDetailsDto);
+    //     // Validate ownership inside service layer
+    //     StudentDetailsResponseDto updatedStudent = userService.updateStudentDetails(studentId, userId, studentDetailsDto);
 
-        return ResponseEntity.ok(updatedStudent);
-    }
+    //     return ResponseEntity.ok(updatedStudent);
+    // }
 
     ///////////////// -------------------------------------------->>>>>>>>>>>>>>>>>>>>>>>>>>
     /// Company Info User Mode
@@ -176,7 +180,7 @@ public class UserController {
     ///
     /// GetplacementRecords By BatchYear or CompanyName
     @GetMapping("/records")
-    public ResponseEntity<List<PlacementRecordDto>> getPlacementRecords(
+    public ResponseEntity<List<PlacementRecordResponseDto>> getPlacementRecords(
             @RequestParam(required = false) Integer batchYear,
             @RequestParam(required = false) String companyName) {
         return ResponseEntity.ok(placementService.getPlacementRecords(batchYear, companyName));
@@ -185,6 +189,17 @@ public class UserController {
     @GetMapping("/placementsRecords")
     public ResponseEntity<List<PlacementRecordResponseDto>> getAllPlacements() {
         return ResponseEntity.ok(placementRecordService.getAllPlacementRecords());
+    }
+
+
+      @PostMapping("/generate")
+    public ResponseEntity<Map<String, Object>> getResumeData(
+            @RequestBody ResumeRequest resumeRequest
+    ) throws IOException {
+
+        Map<String, Object> stringObjectMap = resumeService.generateResumeResponse(resumeRequest.userDescription());
+        return new ResponseEntity<>(stringObjectMap, HttpStatus.OK);
+
     }
 
 }
