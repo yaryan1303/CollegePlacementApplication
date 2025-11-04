@@ -6,6 +6,9 @@ import java.util.Optional;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -16,6 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.college.PlacementApl.Model.Department;
+import com.college.PlacementApl.Model.PlacementStatus;
 import com.college.PlacementApl.Model.StudentDetails;
 import com.college.PlacementApl.Model.User;
 import com.college.PlacementApl.Repository.DepartmentRepository;
@@ -34,6 +38,7 @@ import com.college.PlacementApl.utilites.ResourceNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 
 @Service
+@CacheConfig(cacheNames = "students")
 public class UserServiceImpl implements UserService {
 
     private UserRepository userRepository;
@@ -117,12 +122,16 @@ public class UserServiceImpl implements UserService {
         studentDetails.setCgpa(studentDetailsDto.getCgpa());
         studentDetails.setResumeUrl(studentDetailsDto.getResumeUrl());
         studentDetails.setPhoneNumber(studentDetailsDto.getPhoneNumber());
-        studentDetails.setCurrentStatus(studentDetailsDto.getCurrentStatus());
+        // studentDetails.setCurrentStatus(studentDetailsDto.getCurrentStatus());
+        studentDetails.setCurrentStatus(PlacementStatus.NOT_PLACED);
 
         // Establish bi-directional mapping if required
         user.setStudentDetails(studentDetails);
 
         studentDetailsRepository.save(studentDetails);
+
+        // Evict cache after saving new student
+        evictAllStudentsCache();
 
         return convertToStudentDetailsResponseDto(studentDetails);
     }
@@ -182,9 +191,62 @@ public class UserServiceImpl implements UserService {
         student.setPhoneNumber(studentDetailsDto.getPhoneNumber());
         student.setResumeUrl(studentDetailsDto.getResumeUrl());
         student.setRollNumber(studentDetailsDto.getRollNumber());
-        student.setCurrentStatus(studentDetailsDto.getCurrentStatus());
+        student.setCurrentStatus(student.getCurrentStatus());
 
         studentDetailsRepository.save(student);
+
+        // Evict cache after saving new student
+        evictAllStudentsCache();
+
+        return convertToStudentDetailsResponseDto(student);
+    }
+
+    @Override
+    public StudentDetailsResponseDto updateStudentDetailsByUserId(Long userId, StudentDetailsDto studentDetailsDto) {
+        // Find student by userId
+        StudentDetails student = studentDetailsRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found for user ID: " + userId));
+
+        // Update department if departmentId is provided
+        if (studentDetailsDto.getDepartmentId() != null) {
+            Department department = departmentRepository.findById(studentDetailsDto.getDepartmentId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
+            student.setDepartment(department);
+        }
+
+        // Update student fields from DTO (only if they are provided)
+        if (studentDetailsDto.getCgpa() != null) {
+            student.setCgpa(studentDetailsDto.getCgpa());
+        }
+        if (studentDetailsDto.getFirstName() != null) {
+            student.setFirstName(studentDetailsDto.getFirstName());
+        }
+        if (studentDetailsDto.getLastName() != null) {
+            student.setLastName(studentDetailsDto.getLastName());
+        }
+        if (studentDetailsDto.getPhoneNumber() != null) {
+            student.setPhoneNumber(studentDetailsDto.getPhoneNumber());
+        }
+        if (studentDetailsDto.getResumeUrl() != null) {
+            student.setResumeUrl(studentDetailsDto.getResumeUrl());
+        }
+        if (studentDetailsDto.getRollNumber() != null) {
+            // Check if roll number already exists (excluding current student)
+            Optional<StudentDetails> existingStudent = studentDetailsRepository
+                    .findByRollNumber(studentDetailsDto.getRollNumber());
+            if (existingStudent.isPresent() && !existingStudent.get().getStudentId().equals(student.getStudentId())) {
+                throw new ResourceNotFoundException("Roll Number already exists");
+            }
+            student.setRollNumber(studentDetailsDto.getRollNumber());
+        }
+        if (studentDetailsDto.getCurrentStatus() != null) {
+            student.setCurrentStatus(studentDetailsDto.getCurrentStatus());
+        }
+
+        studentDetailsRepository.save(student);
+
+        // Evict cache after updating student
+        evictAllStudentsCache();
 
         return convertToStudentDetailsResponseDto(student);
     }
@@ -199,7 +261,10 @@ public class UserServiceImpl implements UserService {
     // }
 
     @Override
+    @Cacheable(value = "allStudents", key = "'allStudentsList'")
     public List<StudentProfileDto> getAllStudents() {
+        System.out.println(
+                "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++This is method is called");
         return studentDetailsRepository.findAll().stream()
                 .map(student -> new StudentProfileDto(
                         student.getStudentId(),
@@ -215,6 +280,11 @@ public class UserServiceImpl implements UserService {
                         student.getPhoneNumber(),
                         student.getCurrentStatus()))
                 .toList();
+    }
+
+    @CacheEvict(value = "allStudents", key = "'allStudentsList'")
+    public void evictAllStudentsCache() {
+        System.out.println("Clearing all students cache...");
     }
 
     @Override

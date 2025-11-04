@@ -7,6 +7,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
 import com.college.PlacementApl.Model.Company;
@@ -76,7 +77,6 @@ public class ApplicationServiceImpl implements ApplicationService {
         this.placementRepository = placementRepository;
         this.smsService = smsService;
         this.rabbitTemplate = rabbitTemplate;
-    
 
     }
 
@@ -220,8 +220,6 @@ public class ApplicationServiceImpl implements ApplicationService {
         application.setFeedback(feedback);
         application = applicationRepository.save(application);
 
-
-
         NotificationDto notification = new NotificationDto();
         notification.setFirstName(application.getStudent().getFirstName());
         notification.setLastName(application.getStudent().getLastName());
@@ -232,42 +230,35 @@ public class ApplicationServiceImpl implements ApplicationService {
         notification.setEmail(application.getStudent().getUser().getEmail());
         notification.setPhoneNumber(application.getStudent().getPhoneNumber());
 
-
         if (status == ApplicationStatus.SELECTED) {
             createPlacementRecord(application);
         }
 
-
-
-
-
         // // Compose status change message
         // String smsMessage = String.format(
-        //         "Hi %s, your application status for %s is updated to %s. %s",
-        //         application.getStudent().getFirstName() + " " + application.getStudent().getLastName(),
-        //         application.getVisit().getCompany().getName(),
-        //         status.name(),
-        //         feedback != null ? "Feedback: " + feedback : "");
+        // "Hi %s, your application status for %s is updated to %s. %s",
+        // application.getStudent().getFirstName() + " " +
+        // application.getStudent().getLastName(),
+        // application.getVisit().getCompany().getName(),
+        // status.name(),
+        // feedback != null ? "Feedback: " + feedback : "");
 
         // Send email and SMS only if status changed
         if (!status.equals(previousStatus)) {
             // sendStatusUpdateEmail(application, status, feedback);
 
             // try {
-            //     String studentPhone = application.getStudent().getPhoneNumber(); // assuming this exists
-            //     smsService.sendSMS(studentPhone, smsMessage);
+            // String studentPhone = application.getStudent().getPhoneNumber(); // assuming
+            // this exists
+            // smsService.sendSMS(studentPhone, smsMessage);
             // } catch (Exception e) {
-            //     // log.error("Failed to send SMS to student", e);
-            //     // Optionally continue without throwing
+            // // log.error("Failed to send SMS to student", e);
+            // // Optionally continue without throwing
             // }
 
-             rabbitTemplate.convertAndSend(exchangeName, routingKey, notification);
-
-
+            rabbitTemplate.convertAndSend(exchangeName, routingKey, notification);
 
         }
-
-        
 
         return "Application status updated successfully";
     }
@@ -310,6 +301,8 @@ public class ApplicationServiceImpl implements ApplicationService {
         StudentDetails student = application.getStudent();
         student.setCurrentStatus(PlacementStatus.PLACED);
         studentRepository.save(student);
+
+        evictAllPlacementRecordsCache();
     }
 
     /////////// ---------------------------------------->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -318,6 +311,9 @@ public class ApplicationServiceImpl implements ApplicationService {
         return companyRepository.getCompanyStats();
     }
 
-   
+    @CacheEvict(value = "allPlacementRecords", key = "'allRecords'")
+    public void evictAllPlacementRecordsCache() {
+        System.out.println("Clearing all placement records cache...");
+    }
 
 }

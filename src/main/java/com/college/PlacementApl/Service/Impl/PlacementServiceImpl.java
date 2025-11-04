@@ -1,6 +1,5 @@
 package com.college.PlacementApl.Service.Impl;
 
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -27,60 +26,54 @@ public class PlacementServiceImpl implements Placement_Service {
 
     private StudentDetailsRepository studentRepository;
 
-    
-
-
-
     @Autowired
-    public PlacementServiceImpl(PlacementRecordRepository placementRepository, StudentDetailsRepository studentRepository) {
+    public PlacementServiceImpl(PlacementRecordRepository placementRepository,
+            StudentDetailsRepository studentRepository) {
         this.placementRepository = placementRepository;
         this.studentRepository = studentRepository;
-       
-        
+
     }
 
-   @Override
-public List<PlacementRecordResponseDto> getPlacementRecords(Integer batchYear, String companyName) {
-    // Fetch placement records from repository
-    List<PlacementRecord> records = placementRepository.findByBatchYearOrCompanyName(batchYear, companyName);
+    @Override
+    public List<PlacementRecordResponseDto> getPlacementRecords(Integer batchYear, String companyName) {
+        // Fetch placement records from repository
+        List<PlacementRecord> records = placementRepository.findByBatchYearOrCompanyName(batchYear, companyName);
 
-    // Convert each PlacementRecord → DTO manually
-    return records.stream()
-            .map(record -> {
-                PlacementRecordResponseDto dto = new PlacementRecordResponseDto();
-                dto.setRecordId(record.getRecordId());
+        // Convert each PlacementRecord → DTO manually
+        return records.stream()
+                .map(record -> {
+                    PlacementRecordResponseDto dto = new PlacementRecordResponseDto();
+                    dto.setRecordId(record.getRecordId());
 
-                // Student Info
-                dto.setStudentId(record.getStudent().getStudentId());
-                dto.setStudentName(record.getStudent().getFirstName() + " " + record.getStudent().getLastName());
-                dto.setRollNumber(record.getStudent().getRollNumber());
+                    // Student Info
+                    dto.setStudentId(record.getStudent().getStudentId());
+                    dto.setStudentName(record.getStudent().getFirstName() + " " + record.getStudent().getLastName());
+                    dto.setRollNumber(record.getStudent().getRollNumber());
 
-                // Company Info
-                dto.setCompanyId(record.getCompany().getCompanyId());
-                dto.setCompanyName(record.getCompany().getName());
+                    // Company Info
+                    dto.setCompanyId(record.getCompany().getCompanyId());
+                    dto.setCompanyName(record.getCompany().getName());
 
-                // Visit Info
-                dto.setVisitId(record.getVisit().getVisitId());
-                dto.setVisitDate(record.getVisit().getVisitDate());
+                    // Visit Info
+                    dto.setVisitId(record.getVisit().getVisitId());
+                    dto.setVisitDate(record.getVisit().getVisitDate());
 
-                // Placement Details
-                dto.setPosition(record.getPosition());
-                dto.setSalaryPackage(record.getSalaryPackage());
-                dto.setPlacementDate(record.getPlacementDate());
-                dto.setInternship(record.isInternship());
+                    // Placement Details
+                    dto.setPosition(record.getPosition());
+                    dto.setSalaryPackage(record.getSalaryPackage());
+                    dto.setPlacementDate(record.getPlacementDate());
+                    dto.setInternship(record.isInternship());
 
-                // Audit fields
-                dto.setCreatedAt(record.getCreatedAt());
-                dto.setUpdatedAt(record.getUpdatedAt());
+                    // Audit fields
+                    dto.setCreatedAt(record.getCreatedAt());
+                    dto.setUpdatedAt(record.getUpdatedAt());
 
-                return dto;
-            })
-            .collect(Collectors.toList());
-}
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
 
-
-
-    /////////////////////---------------------------------------------->>>>>>>>>>>>>>>>>>>>>>
+    ///////////////////// ---------------------------------------------->>>>>>>>>>>>>>>>>>>>>>
     /// Placement Summary
     public PlacementStatsDto getPlacementSummary() {
         Long totalStudents = studentRepository.count();
@@ -98,37 +91,41 @@ public List<PlacementRecordResponseDto> getPlacementRecords(Integer batchYear, S
         List<PlacementRecord> records = placementRepository.findAll();
 
         return records.stream()
-            .collect(Collectors.groupingBy(
-                record -> record.getStudent().getDepartment().getName(),
-                Collectors.groupingBy(
-                    record -> String.valueOf(record.getStudent().getBatchYear()),
-                    Collectors.mapping(this::convertToPlacementRecordDto, Collectors.toList())
-                )
-            ));
+                .collect(Collectors.groupingBy(
+                        record -> record.getStudent().getDepartment().getName(),
+                        Collectors.groupingBy(
+                                record -> String.valueOf(record.getStudent().getBatchYear()),
+                                Collectors.mapping(this::convertToPlacementRecordDto, Collectors.toList()))));
     }
 
-   @Override
-public Map<Integer, Long> getPlacementCountByBatchYear() {
-    List<PlacementRecord> records = placementRepository.findAll();
+    @Override
+    public Map<Integer, Long> getPlacementCountByBatchYear() {
+        List<PlacementRecord> records = placementRepository.findAll();
 
-    return records.stream()
-            .collect(Collectors.groupingBy(
-                    record -> record.getStudent().getBatchYear(),
-                    Collectors.mapping(
-                            record -> record.getStudent().getStudentId(),
-                            Collectors.collectingAndThen(
-                                    Collectors.toSet(), // store unique student IDs
-                                    set -> (long) set.size() // count unique IDs
-                            )
-                    )
-            ));
-}
+        return records.stream()
+                .collect(Collectors.groupingBy(
+                        record -> record.getStudent().getBatchYear(),
+                        Collectors.mapping(
+                                record -> record.getStudent().getStudentId(),
+                                Collectors.collectingAndThen(
+                                        Collectors.toSet(), // store unique student IDs
+                                        set -> (long) set.size() // count unique IDs
+                                ))));
+    }
 
-   
+
+    public List<PlacementRecordDto> searchByStudentName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            List<PlacementRecord> record = placementRepository.findAll();
+            return record.stream().map(this::convertToPlacementRecordDto).collect(Collectors.toList());
+        }
+        List<PlacementRecord> record = placementRepository.findByStudentNameContainingIgnoreCase(name.trim());
+        return record.stream().map(this::convertToPlacementRecordDto).collect(Collectors.toList());
+    }
 
     private PlacementRecordDto convertToPlacementRecordDto(PlacementRecord record) {
         PlacementRecordDto dto = new PlacementRecordDto();
-        
+
         dto.setRecordId(record.getRecordId());
         dto.setStudentId(record.getStudent().getStudentId());
         dto.setStudentName(record.getStudent().getFirstName() + " " + record.getStudent().getLastName());
@@ -139,9 +136,8 @@ public Map<Integer, Long> getPlacementCountByBatchYear() {
         dto.setSalaryPackage(record.getSalaryPackage());
         dto.setPlacementDate(record.getPlacementDate());
         dto.setInternship(record.isInternship());
+        dto.setRollNumber(record.getStudent().getRollNumber());
         return dto;
     }
 
-   
 }
-

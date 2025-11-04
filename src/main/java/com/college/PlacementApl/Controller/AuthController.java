@@ -111,7 +111,7 @@ public class AuthController {
         return ResponseEntity.ok(userResponseDto);
     }
 
-    @PostMapping("public/forgot-password")
+    @PostMapping("/public/forgot-password")
     public ResponseEntity<GenericResponse> processForgotPassword(
             @RequestBody ForgotPasswordRequest forgotPasswordRequest,
             HttpServletRequest request) {
@@ -129,7 +129,9 @@ public class AuthController {
         userService.updateUserResetToken(email, resetToken);
 
         // Generate reset URL
-        String url = fronted_url + "/api/auth/public/reset-password?token=" + resetToken;
+        // String url = fronted_url + "/api/auth/public/reset-password?token=" + resetToken;
+        String url = fronted_url + "/reset-password?token=" + resetToken;
+
 
         // Send via both channels
         boolean emailSent = false;
@@ -174,7 +176,7 @@ public class AuthController {
         }
     }
 
-    @GetMapping("public/validate-reset-token")
+    @GetMapping("/public/validate-reset-token")
     public ResponseEntity<GenericResponse> validateResetToken(@RequestParam String token) {
         User user = userService.getUserByToken(token);
 

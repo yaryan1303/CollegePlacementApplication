@@ -44,4 +44,6 @@ public interface UserService {
 
     public List<StudentDetailsResponseDto>getStudentByBatchYearAndDepartment(Integer batchYear,Long departmentId);
 
+    StudentDetailsResponseDto updateStudentDetailsByUserId(Long userId, StudentDetailsDto studentDetailsDto);
+
 }

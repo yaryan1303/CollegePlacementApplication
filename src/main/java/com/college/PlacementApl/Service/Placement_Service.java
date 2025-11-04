@@ -18,4 +18,6 @@ public interface Placement_Service {
 
     Map<Integer, Long> getPlacementCountByBatchYear();
 
+    public List<PlacementRecordDto> searchByStudentName(String name);
+
 }

@@ -254,4 +254,12 @@ public class AdminController {
         return ResponseEntity.ok(placementService.getPlacementCountByBatchYear());
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<List<PlacementRecordDto>> searchByStudentName(
+            @RequestParam(value = "name", required = false) String studentName) {
+        
+        List<PlacementRecordDto> records = placementService.searchByStudentName(studentName);
+        return ResponseEntity.ok(records);
+    }
+
 }

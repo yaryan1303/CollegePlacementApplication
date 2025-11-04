@@ -126,6 +126,16 @@ public class UserController {
     //     return ResponseEntity.ok(updatedStudent);
     // }
 
+    @PutMapping("/me/{userId}")
+public ResponseEntity<StudentDetailsResponseDto> updateStudentDetails(
+        @PathVariable Long userId,  // ← Take userId as path variable
+        @Valid @RequestBody StudentDetailsDto studentDetailsDto) {
+
+    StudentDetailsResponseDto updatedStudent = userService.updateStudentDetailsByUserId(userId, studentDetailsDto);
+
+    return ResponseEntity.ok(updatedStudent);
+}
+
     ///////////////// -------------------------------------------->>>>>>>>>>>>>>>>>>>>>>>>>>
     /// Company Info User Mode
     ///
