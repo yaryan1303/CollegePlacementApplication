@@ -70,6 +70,7 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
             .requestMatchers(HttpMethod.GET, "/api/users/placementsRecords").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/users/companies/visits/**").permitAll()
             .requestMatchers("/api/interview/**").permitAll()
+            .requestMatchers("/api/mock-interview/**").permitAll()
             
             
             .requestMatchers("/api/admin/**").hasRole("ADMIN")
