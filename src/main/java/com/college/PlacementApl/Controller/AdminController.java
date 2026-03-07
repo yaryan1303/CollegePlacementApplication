@@ -1,6 +1,7 @@
 package com.college.PlacementApl.Controller;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.college.PlacementApl.Model.Department;
 import com.college.PlacementApl.Model.PlacementRecord;
+import com.college.PlacementApl.ResumeAnalyais.GroqResumeService;
 import com.college.PlacementApl.Service.AdminVisitService;
 import com.college.PlacementApl.Service.ApplicationService;
 import com.college.PlacementApl.Service.DepartmentService;
@@ -27,6 +29,7 @@ import com.college.PlacementApl.Service.PlacementRecordService;
 import com.college.PlacementApl.Service.Placement_Service;
 import com.college.PlacementApl.Service.UserService;
 import com.college.PlacementApl.Service.companyService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.college.PlacementApl.dtos.ApplicationResponseDto;
 import com.college.PlacementApl.dtos.CompanyCreateDto;
 import com.college.PlacementApl.dtos.CompanyDto;
@@ -63,10 +66,15 @@ public class AdminController {
 
     private PlacementRecordService placementRecordService;
 
+    private GroqResumeService groqResumeService;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     @Autowired
     public AdminController(UserService studentService, companyService companyService, AdminVisitService visitService,
             Placement_Service placementService, ApplicationService applicationService,
-            DepartmentService departmentService, PlacementRecordService placementRecordService) {
+            DepartmentService departmentService, PlacementRecordService placementRecordService,
+            GroqResumeService groqResumeService) {
         this.studentService = studentService;
         this.companyService = companyService;
         this.visitService = visitService;
@@ -74,6 +82,7 @@ public class AdminController {
         this.applicationService = applicationService;
         this.departmentService = departmentService;
         this.placementRecordService = placementRecordService;
+        this.groqResumeService = groqResumeService;
     }
 
     // Category Controller
@@ -257,9 +266,35 @@ public class AdminController {
     @GetMapping("/search")
     public ResponseEntity<List<PlacementRecordDto>> searchByStudentName(
             @RequestParam(value = "name", required = false) String studentName) {
-        
         List<PlacementRecordDto> records = placementService.searchByStudentName(studentName);
         return ResponseEntity.ok(records);
+    }
+
+    // ==================== FEATURE 6: AI PLACEMENT REPORT SUMMARY ====================
+    // GET /api/admin/reports/ai-summary
+    // Returns a natural language AI-generated summary of all placement statistics
+    @GetMapping("/reports/ai-summary")
+    public ResponseEntity<?> getAiPlacementSummary() {
+        try {
+            PlacementStatsDto stats = placementService.getPlacementSummary();
+            List<CompanyStatsDto> companyStats = applicationService.getCompanyStatistics();
+
+            String statsJson = objectMapper.writeValueAsString(Map.of(
+                "overallStats", stats,
+                "companyStats", companyStats
+            ));
+
+            String summary = groqResumeService.generatePlacementReportSummary(statsJson).join();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("summary", summary);
+            response.put("stats", stats);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, String> err = new HashMap<>();
+            err.put("error", "Failed to generate AI summary: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(err);
+        }
     }
 
 }

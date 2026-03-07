@@ -36,7 +36,7 @@ public class GroqResumeService {
             @Value("${groq.api.key}") String apiKey,
             @Value("${groq.model:llama-3.3-70b-versatile}") String model) {
         this.model = model;
-        this.rateLimiter = RateLimiter.create(3.0 / 60.0);
+        this.rateLimiter = RateLimiter.create(20.0 / 60.0); // 20 req/min, Groq free tier allows 30
         this.objectMapper = new ObjectMapper();
 
         this.webClient = WebClient.builder()
@@ -47,9 +47,7 @@ public class GroqResumeService {
     }
 
     public String generateFeedback(String resumeText) {
-        if (!rateLimiter.tryAcquire()) {
-            return "AI feedback temporarily unavailable (rate limited)";
-        }
+        rateLimiter.acquire();
 
         String truncatedText = resumeText.length() > 3000
                 ? resumeText.substring(0, 3000)
@@ -292,5 +290,247 @@ public class GroqResumeService {
 
     private String extractValue(String line, String prefix) {
         return line.startsWith(prefix) ? line.substring(prefix.length()).trim() : line.trim();
+    }
+
+    // ==================== FEATURE 1: AI PLACEMENT PREDICTOR ====================
+
+    public CompletableFuture<String> predictPlacement(double cgpa, List<String> skills,
+            String department, int batchYear, String historicalStats) {
+        return CompletableFuture.supplyAsync(() -> {
+            rateLimiter.acquire();
+            String skillsList = String.join(", ", skills);
+            String prompt = String.format(
+                "You are a placement prediction expert for engineering college students.\n" +
+                "Student Profile:\n- CGPA: %.2f\n- Skills: %s\n- Department: %s\n- Batch Year: %d\n\n" +
+                "Historical Placement Statistics:\n%s\n\n" +
+                "Based on the student profile and historical data, predict placement probability.\n" +
+                "Respond in exactly this JSON format (no markdown, no extra text):\n" +
+                "{\"probability\":<0-100>,\"level\":\"<HIGH/MEDIUM/LOW>\"," +
+                "\"reasoning\":\"<2-3 sentence explanation>\"," +
+                "\"strengthAreas\":[\"<s1>\",\"<s2>\",\"<s3>\"]," +
+                "\"improvementAreas\":[\"<a1>\",\"<a2>\",\"<a3>\"]," +
+                "\"recommendedActions\":[\"<r1>\",\"<r2>\",\"<r3>\"]}",
+                cgpa, skillsList, department, batchYear, historicalStats);
+
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", model);
+            requestBody.put("messages", List.of(
+                Map.of("role", "system", "content", "You are a placement prediction expert. Always respond with valid JSON only. No markdown."),
+                Map.of("role", "user", "content", prompt)));
+            requestBody.put("temperature", 0.3);
+            requestBody.put("max_tokens", 600);
+
+            try {
+                GroqResponse response = webClient.post()
+                    .uri("/chat/completions")
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(GroqResponse.class)
+                    .block();
+                if (response != null && response.getChoices() != null && !response.getChoices().isEmpty()) {
+                    return response.getChoices().get(0).getMessage().getContent();
+                }
+                return "{\"probability\":50,\"level\":\"MEDIUM\",\"reasoning\":\"Unable to generate prediction.\",\"strengthAreas\":[],\"improvementAreas\":[],\"recommendedActions\":[]}";
+            } catch (Exception e) {
+                log.error("Placement prediction error: {}", e.getMessage());
+                return "{\"error\":\"Prediction service unavailable\"}";
+            }
+        });
+    }
+
+    // ==================== FEATURE 3: AI CHATBOT ====================
+
+    public CompletableFuture<String> chatWithStudent(String userMessage, String systemContext) {
+        return CompletableFuture.supplyAsync(() -> {
+            rateLimiter.acquire();
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", model);
+            requestBody.put("messages", List.of(
+                Map.of("role", "system", "content", systemContext),
+                Map.of("role", "user", "content", userMessage)));
+            requestBody.put("temperature", 0.7);
+            requestBody.put("max_tokens", 800);
+
+            try {
+                GroqResponse response = webClient.post()
+                    .uri("/chat/completions")
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(GroqResponse.class)
+                    .block();
+                if (response != null && response.getChoices() != null && !response.getChoices().isEmpty()) {
+                    return response.getChoices().get(0).getMessage().getContent();
+                }
+                return "I'm sorry, I couldn't process your request right now. Please try again later.";
+            } catch (Exception e) {
+                log.error("Chatbot error: {}", e.getMessage());
+                return "Chat service is temporarily unavailable.";
+            }
+        });
+    }
+
+    // ==================== FEATURE 4: MOCK INTERVIEW EVALUATOR ====================
+
+    public CompletableFuture<String> evaluateInterviewAnswer(String technology, String question,
+            String studentAnswer) {
+        return CompletableFuture.supplyAsync(() -> {
+            rateLimiter.acquire();
+            String prompt = String.format(
+                "You are an expert technical interviewer evaluating a student's answer.\n" +
+                "Technology: %s\nQuestion: %s\nStudent's Answer: %s\n\n" +
+                "Evaluate and respond in exactly this JSON format (no markdown, no extra text):\n" +
+                "{\"score\":<0-10>,\"grade\":\"<Excellent/Good/Average/Poor>\"," +
+                "\"feedback\":\"<constructive feedback 2-3 sentences>\"," +
+                "\"keyPointsCovered\":[\"<p1>\",\"<p2>\"]," +
+                "\"keyPointsMissed\":[\"<p1>\",\"<p2>\"]," +
+                "\"improvedAnswer\":\"<better version in 3-4 sentences>\"}",
+                technology, question, studentAnswer);
+
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", model);
+            requestBody.put("messages", List.of(
+                Map.of("role", "system", "content", "You are a technical interviewer. Respond with valid JSON only. No markdown."),
+                Map.of("role", "user", "content", prompt)));
+            requestBody.put("temperature", 0.3);
+            requestBody.put("max_tokens", 700);
+
+            try {
+                GroqResponse response = webClient.post()
+                    .uri("/chat/completions")
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(GroqResponse.class)
+                    .block();
+                if (response != null && response.getChoices() != null && !response.getChoices().isEmpty()) {
+                    return response.getChoices().get(0).getMessage().getContent();
+                }
+                return "{\"score\":5,\"grade\":\"Average\",\"feedback\":\"Unable to evaluate at this time.\",\"keyPointsCovered\":[],\"keyPointsMissed\":[],\"improvedAnswer\":\"\"}";
+            } catch (Exception e) {
+                log.error("Interview evaluation error: {}", e.getMessage());
+                return "{\"error\":\"Evaluation service unavailable\"}";
+            }
+        });
+    }
+
+    // ==================== FEATURE 5: ATS RESUME SCORE ====================
+
+    public String generateAtsScore(String resumeText) {
+        rateLimiter.acquire();
+        String truncated = resumeText.length() > 3000 ? resumeText.substring(0, 3000) : resumeText;
+        String prompt = String.format(
+            "You are an ATS (Applicant Tracking System) expert. Analyze this resume.\n" +
+            "Resume: %s\n\n" +
+            "Respond in exactly this JSON format (no markdown, no extra text):\n" +
+            "{\"score\":<0-100>,\"rating\":\"<Excellent/Good/Average/Poor>\"," +
+            "\"strengths\":[\"<s1>\",\"<s2>\",\"<s3>\"]," +
+            "\"weaknesses\":[\"<w1>\",\"<w2>\",\"<w3>\"]," +
+            "\"improvements\":[\"<i1>\",\"<i2>\",\"<i3>\",\"<i4>\"]," +
+            "\"keywordsMissing\":[\"<k1>\",\"<k2>\",\"<k3>\"]}",
+            truncated);
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", model);
+        requestBody.put("messages", List.of(
+            Map.of("role", "system", "content", "You are an ATS expert. Always respond with valid JSON only. No markdown."),
+            Map.of("role", "user", "content", prompt)));
+        requestBody.put("temperature", 0.3);
+        requestBody.put("max_tokens", 600);
+
+        try {
+            GroqResponse response = webClient.post()
+                .uri("/chat/completions")
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(GroqResponse.class)
+                .retryWhen(Retry.backoff(2, Duration.ofSeconds(1)))
+                .block();
+            if (response != null && response.getChoices() != null && !response.getChoices().isEmpty()) {
+                return response.getChoices().get(0).getMessage().getContent();
+            }
+            return "{\"score\":50,\"rating\":\"Average\",\"strengths\":[],\"weaknesses\":[],\"improvements\":[],\"keywordsMissing\":[]}";
+        } catch (Exception e) {
+            log.error("ATS score error: {}", e.getMessage());
+            return "{\"error\":\"ATS scoring service unavailable\"}";
+        }
+    }
+
+    // ==================== FEATURE 6: PLACEMENT REPORT SUMMARY ====================
+
+    public CompletableFuture<String> generatePlacementReportSummary(String statsJson) {
+        return CompletableFuture.supplyAsync(() -> {
+            rateLimiter.acquire();
+            String prompt = String.format(
+                "You are a college placement officer. Generate a professional natural language summary " +
+                "report based on these placement statistics.\n\nStatistics: %s\n\n" +
+                "Write a comprehensive 3-4 paragraph summary covering:\n" +
+                "1. Overall placement performance\n2. Department/batch-wise highlights\n" +
+                "3. Company recruitment trends\n4. Key achievements and areas for improvement\n\n" +
+                "Keep it professional, data-driven, and use specific numbers from the statistics.",
+                statsJson);
+
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", model);
+            requestBody.put("messages", List.of(
+                Map.of("role", "system", "content", "You are a professional placement officer writing an annual report."),
+                Map.of("role", "user", "content", prompt)));
+            requestBody.put("temperature", 0.5);
+            requestBody.put("max_tokens", 800);
+
+            try {
+                GroqResponse response = webClient.post()
+                    .uri("/chat/completions")
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(GroqResponse.class)
+                    .block();
+                if (response != null && response.getChoices() != null && !response.getChoices().isEmpty()) {
+                    return response.getChoices().get(0).getMessage().getContent();
+                }
+                return "Unable to generate placement summary at this time. Please try again.";
+            } catch (Exception e) {
+                log.error("Report summary error: {}", e.getMessage());
+                return "Report summary service is temporarily unavailable.";
+            }
+        });
+    }
+
+    // ==================== FEATURE 2: SEMANTIC COMPANY MATCH ====================
+
+    public String semanticMatchCompany(String studentSkills, String jobDescription,
+            String companyName) {
+        rateLimiter.acquire();
+        String prompt = String.format(
+            "You are a job matching expert. Evaluate how well a student matches a job opportunity.\n" +
+            "Student Skills: %s\nCompany: %s\nJob Description: %s\n\n" +
+            "Respond in exactly this JSON format (no markdown, no extra text):\n" +
+            "{\"matchScore\":<0-100>,\"matchLevel\":\"<Strong/Moderate/Weak>\"," +
+            "\"matchingSkills\":[\"<s1>\",\"<s2>\"]," +
+            "\"missingSkills\":[\"<s1>\",\"<s2>\"]," +
+            "\"recommendation\":\"<1 sentence recommendation>\"}",
+            studentSkills, companyName, jobDescription);
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", model);
+        requestBody.put("messages", List.of(
+            Map.of("role", "system", "content", "You are a job matching expert. Respond with valid JSON only. No markdown."),
+            Map.of("role", "user", "content", prompt)));
+        requestBody.put("temperature", 0.3);
+        requestBody.put("max_tokens", 400);
+
+        try {
+            GroqResponse response = webClient.post()
+                .uri("/chat/completions")
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(GroqResponse.class)
+                .block();
+            if (response != null && response.getChoices() != null && !response.getChoices().isEmpty()) {
+                return response.getChoices().get(0).getMessage().getContent();
+            }
+            return "{\"matchScore\":50,\"matchLevel\":\"Moderate\",\"matchingSkills\":[],\"missingSkills\":[],\"recommendation\":\"Unable to assess match\"}";
+        } catch (Exception e) {
+            log.error("Semantic match error: {}", e.getMessage());
+            return "{\"error\":\"Matching service unavailable\"}";
+        }
     }
 }

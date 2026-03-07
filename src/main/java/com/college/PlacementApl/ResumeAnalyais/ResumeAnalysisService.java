@@ -10,9 +10,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.college.PlacementApl.Model.CompanyVisit;
 import com.college.PlacementApl.Repository.CompanyVisitRepository;
+import com.college.PlacementApl.Service.AiChatService;
+import com.college.PlacementApl.dtos.AtsScoreResult;
 import com.college.PlacementApl.dtos.Recommendation;
 import com.college.PlacementApl.dtos.ResumeAnalysisResult;
 import com.college.PlacementApl.dtos.ResumeProfile;
+import com.college.PlacementApl.dtos.SmartRecommendation;
+import com.college.PlacementApl.dtos.SmartRecommendResult;
 
 
 
@@ -21,38 +25,35 @@ public class ResumeAnalysisService {
 
     private final ResumeParser parser;
     private final CompanyVisitRepository companyVisitRepository;
-    // private final HuggingFaceService huggingFaceService;
-
-    private final  GroqResumeService groqResumeService;
-
-   
-
+    private final GroqResumeService groqResumeService;
+    private final AiChatService aiChatService;
 
     public ResumeAnalysisService(ResumeParser parser,
                                  CompanyVisitRepository companyVisitRepository,
-                                  GroqResumeService groqResumeService
-                                  ) {
+                                 GroqResumeService groqResumeService,
+                                 AiChatService aiChatService) {
         this.parser = parser;
         this.companyVisitRepository = companyVisitRepository;
-        this.groqResumeService=groqResumeService;
+        this.groqResumeService = groqResumeService;
+        this.aiChatService = aiChatService;
     }
 
     public ResumeAnalysisResult analyze(MultipartFile file) throws Exception {
         ResumeProfile profile = parser.parse(file);
 
-        // Fetch relevant company visits. Example: active visits with future deadlines
         List<CompanyVisit> visits = companyVisitRepository.findByIsActiveTrueAndApplicationDeadlineAfter(LocalDate.now());
 
         List<Recommendation> recs = new ArrayList<>();
         for (CompanyVisit v : visits) {
             double score = scoreVisit(profile, v);
-            if (score > 0.05) { // threshold to include
+            if (score > 0.05) {
                 String reason = generateReason(profile, v);
-                recs.add(new Recommendation(v.getVisitId(), v.getCompany().getName(), v.getJobPositions(),v.getSalaryPackage(),v.getVisitDate(),v.getApplicationDeadline(),v.getEligibilityCriteria(), v.getBatchYear(),score, reason));
+                recs.add(new Recommendation(v.getVisitId(), v.getCompany().getName(), v.getJobPositions(),
+                        v.getSalaryPackage(), v.getVisitDate(), v.getApplicationDeadline(),
+                        v.getEligibilityCriteria(), v.getBatchYear(), score, reason));
             }
         }
 
-        // Sort by score descending and limit to top 10
         recs = recs.stream()
                 .sorted(Comparator.comparingDouble(Recommendation::getScore).reversed())
                 .limit(10)
@@ -62,9 +63,63 @@ public class ResumeAnalysisService {
         result.setProfile(profile);
         result.setRecommendations(recs);
 
-        // Optionally call HF for friendly feedback
+        // AI resume feedback
         String ai = groqResumeService.generateFeedback(profile.getRawText());
         result.setAiFeedback(ai);
+
+        // Feature 5: ATS Resume Score
+        String atsRaw = groqResumeService.generateAtsScore(profile.getRawText());
+        AtsScoreResult atsScore = aiChatService.parseJson(atsRaw, AtsScoreResult.class, aiChatService.defaultAtsScore());
+        result.setAtsScore(atsScore);
+
+        return result;
+    }
+
+    // Feature 2: Smart Semantic Company Recommender
+    public SmartRecommendResult smartRecommend(MultipartFile file) throws Exception {
+        ResumeProfile profile = parser.parse(file);
+        List<CompanyVisit> visits = companyVisitRepository.findByIsActiveTrueAndApplicationDeadlineAfter(LocalDate.now());
+
+        // Keyword pre-filter to top 5 to limit LLM calls
+        List<CompanyVisit> topCandidates = visits.stream()
+                .sorted(Comparator.comparingDouble(v -> -scoreVisit(profile, (CompanyVisit) v)))
+                .limit(5)
+                .collect(Collectors.toList());
+
+        String studentSkills = String.join(", ",
+                Optional.ofNullable(profile.getSkills()).orElse(Collections.emptyList()));
+
+        List<SmartRecommendation> smartRecs = new ArrayList<>();
+        for (CompanyVisit v : topCandidates) {
+            String jobDesc = (v.getJobPositions() != null ? v.getJobPositions() : "") + " " +
+                             (v.getEligibilityCriteria() != null ? v.getEligibilityCriteria() : "");
+            String raw = groqResumeService.semanticMatchCompany(studentSkills, jobDesc, v.getCompany().getName());
+            SmartRecommendation sr = aiChatService.parseJson(raw, SmartRecommendation.class, new SmartRecommendation());
+            sr.setVisitId(v.getVisitId());
+            sr.setCompanyName(v.getCompany().getName());
+            sr.setJobPositions(v.getJobPositions());
+            sr.setSalaryPackage(v.getSalaryPackage());
+            sr.setVisitDate(v.getVisitDate());
+            sr.setApplicationDeadline(v.getApplicationDeadline());
+            sr.setEligibilityCriteria(v.getEligibilityCriteria());
+            sr.setBatchYear(v.getBatchYear());
+            smartRecs.add(sr);
+        }
+
+        List<SmartRecommendation> sortedRecs = smartRecs.stream()
+                .sorted(Comparator.comparingInt(r -> -(r.getMatchScore() != null ? r.getMatchScore() : 0)))
+                .collect(Collectors.toList());
+
+        // ATS score & feedback computed from the same parsed resume text
+        String aiFeedback = groqResumeService.generateFeedback(profile.getRawText());
+        String atsRaw = groqResumeService.generateAtsScore(profile.getRawText());
+        AtsScoreResult atsScore = aiChatService.parseJson(atsRaw, AtsScoreResult.class, aiChatService.defaultAtsScore());
+
+        SmartRecommendResult result = new SmartRecommendResult();
+        result.setRecommendations(sortedRecs);
+        result.setAtsScore(atsScore);
+        result.setAiFeedback(aiFeedback);
+        result.setProfile(profile);
         return result;
     }
 

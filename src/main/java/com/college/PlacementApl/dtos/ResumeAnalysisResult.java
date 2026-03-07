@@ -7,5 +7,6 @@ import lombok.Data;
 public class ResumeAnalysisResult {
     private ResumeProfile profile;
     private List<Recommendation> recommendations;
-    private String aiFeedback; // optional human-friendly feedback from HF
+    private String aiFeedback;
+    private AtsScoreResult atsScore;
 }
